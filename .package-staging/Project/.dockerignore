@@ -1,0 +1,11 @@
+node_modules
+dist
+.tanstack
+.wrangler
+.git
+.env
+.env.*
+!.env.example
+*.log
+docs/screenshots/*
+pack-zip.ps1

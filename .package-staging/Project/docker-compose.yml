@@ -1,0 +1,34 @@
+# Equity.AI — application container (database is external: your Supabase project).
+#
+# Fill .env FIRST (copy .env.example to .env in this folder), then:
+#   docker compose up -d --build
+#   → http://localhost:8787
+#
+# Build context is ./Project (the application source folder in this archive).
+# VITE_* variables are injected at IMAGE BUILD time (Vite bakes them into the
+# browser bundle) — rebuild the image after changing them. Server-side variables
+# (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, AI keys) come from .env at runtime.
+#
+# The image runs the compiled app inside Cloudflare workerd via `wrangler dev`
+# (from the build's generated dist/server/wrangler.json; no Cloudflare account/
+# login needed; Supabase is reached over HTTPS).
+
+services:
+  app:
+    build:
+      context: ./Project
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      LOVABLE_API_KEY: ${LOVABLE_API_KEY:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_MODEL: ${AI_MODEL:-}
+    ports:
+      - "${APP_PORT:-8787}:8787"
+    restart: unless-stopped
