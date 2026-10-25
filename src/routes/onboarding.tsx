@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Building2, Sparkles, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { createOrganization } from "@/lib/org.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 import { useOrg } from "@/contexts/org-context";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,33 @@ const COUNTRIES: { code: string; name: string; currency: string; regime: string 
 
 const CURRENCIES = ["USD", "EUR", "GBP", "INR", "AED", "SGD", "AUD", "CAD", "JPY", "BRL", "CHF", "CNY", "MXN", "ZAR"];
 
+interface CreatedOrg { id: string; name: string | null; currency: string | null | undefined; country: string | null | undefined; }
+
+/** Direct client fallback used on static deployments (no server functions available). */
+async function createWithClient(data: { name: string; country: string; currency: string; tax_regime?: string }): Promise<CreatedOrg> {
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) throw new Error("Not signed in");
+
+  const { data: org, error: orgErr } = await supabase
+    .from("organizations")
+    .insert({ name: data.name, country: data.country, currency: data.currency, tax_regime: data.tax_regime, created_by: user.id })
+    .select("id,name,currency,country")
+    .single();
+  if (orgErr) throw new Error(orgErr.message);
+
+  const { error: memberErr } = await supabase
+    .from("organization_members")
+    .insert({ organization_id: org.id, user_id: user.id, role: "owner" as const });
+  if (memberErr) throw new Error(memberErr.message);
+
+  const { error: locErr } = await supabase
+    .from("inventory_locations")
+    .insert({ organization_id: org.id, name: "Main warehouse", is_default: true });
+  if (locErr) throw new Error(locErr.message);
+
+  return org as CreatedOrg;
+}
+
 function Onboarding() {
   const { user, loading: authLoading } = useAuth();
   const { organizations, loading: orgLoading, refresh, setCurrentOrg } = useOrg();
@@ -63,10 +91,17 @@ function Onboarding() {
   const create = async () => {
     if (!name.trim()) return toast.error("Enter a workspace name");
     setSaving(true);
+    const payload = { name: name.trim(), country, currency, tax_regime: regime };
     try {
-      const org = await createOrganization({
-        data: { name: name.trim(), country, currency, tax_regime: regime },
-      });
+      let org: Awaited<ReturnType<typeof createOrganization>>;
+      try {
+        // SSR path: server function provisions everything with the service-role client
+        org = await createOrganization({ data: payload });
+      } catch {
+        // Static-deployment fallback: RLS allows self-service workspace creation
+        // (organizations.created_by = auth.uid() + self-membership as owner).
+        org = await createWithClient(payload);
+      }
       await refresh();
       setCurrentOrg(org);
       toast.success("Workspace ready");
