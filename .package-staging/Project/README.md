@@ -43,7 +43,7 @@ Add PNG files to `docs/screenshots/` (see names below). Also live: use the worki
 - **Backend:** TanStack Start server functions + server routes, deployed to Cloudflare Workers (edge)
 - **Database:** Supabase (PostgreSQL) with row-level security, triggers, and generated document numbering
 - **Auth:** Supabase Auth (email/password) with automatic workspace provisioning on signup
-- **AI:** Vercel AI SDK with an OpenAI-compatible gateway (default: Lovable AI Gateway / Google Gemini 2.5 Flash)
+- **AI:** Vercel AI SDK with any OpenAI-compatible provider (default: OpenRouter, bring-your-own key per user)
 
 ## Security model
 

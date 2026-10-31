@@ -4,6 +4,16 @@ All notable changes to Equity.AI. Format: [Keep a Changelog](https://keepachange
 
 Dates are approximate build dates reconstructed from the migration log; adjust on release.
 
+## [1.1.1] — 2026-10 · Static-deployment compatibility
+
+### Fixed
+- **Static hosting (Hostinger / Vercel static):** onboarding creates the workspace through a new security-definer RPC `create_workspace` (falling back to direct RLS inserts on older databases), so buyers can sign up and provision a workspace without server functions. Team invites use the same RPC pattern (`invite_member`) as a static-host fallback.
+- Freya now reports clearly when AI chat is unavailable on a static host instead of failing silently.
+- Resolved merge-conflict markers in `package.json` that broke `npm install` on CI (Hostinger build logs).
+
+### Changed
+- Default `npm run build` produces a static SPA distribution (`dist/` with `index.html` + `.htaccess` deep-link rewriting); the SSR/Cloudflare Workers bundle moved to `npm run build:worker`.
+
 ## [1.1.0] — 2026-06 · Finance & intelligence
 
 ### Added
@@ -11,7 +21,7 @@ Dates are approximate build dates reconstructed from the migration log; adjust o
 - **Compliance module:** output vs. input tax, net liability, missing-tax-ID warnings; filing-ready sales & purchase registers with CSV export.
 - **Financial statements:** Profit & Loss, Balance Sheet, Cash Flow with period selector (this/last month, QTD, YTD, last year) and CSV export.
 - **Sales analytics:** collected vs. outstanding revenue, active customers, average invoice value, monthly revenue trend, top customers, top line items.
-- **Configurable AI provider:** Freya supports any OpenAI-compatible endpoint (`AI_API_KEY`/`AI_BASE_URL`/`AI_MODEL`), with the Lovable AI Gateway as the default.
+- **Configurable AI provider:** Freya supports any OpenAI-compatible endpoint (`AI_API_KEY`/`AI_BASE_URL`/`AI_MODEL`) plus per-user OpenRouter keys (Settings → AI).
 
 ## [1.0.0] — 2026-05 · Full commercial cycle
 

@@ -37,8 +37,26 @@ const CURRENCIES = ["USD", "EUR", "GBP", "INR", "AED", "SGD", "AUD", "CAD", "JPY
 
 interface CreatedOrg { id: string; name: string | null; currency: string | null | undefined; country: string | null | undefined; }
 
-/** Direct client fallback used on static deployments (no server functions available). */
-async function createWithClient(data: { name: string; country: string; currency: string; tax_regime?: string }): Promise<CreatedOrg> {
+type NewOrgInput = { name: string; country: string; currency: string; tax_regime?: string };
+
+/**
+ * Static-deployment fallback (no TanStack server functions available).
+ *
+ * Preferred path: `create_workspace` SECURITY DEFINER RPC — atomic (org row +
+ * owner membership in one transaction) and immune to RLS policy drift.
+ * Last resort (DB without the RPC): direct RLS inserts; the
+ * `trg_create_default_location` trigger already seeds the default location.
+ */
+async function createWithClient(data: NewOrgInput): Promise<CreatedOrg> {
+  const rpc = await supabase.rpc("create_workspace", {
+    p_name: data.name,
+    p_country: data.country,
+    p_currency: data.currency,
+    p_tax_regime: data.tax_regime ?? null,
+  });
+  if (!rpc.error && rpc.data) return rpc.data as CreatedOrg;
+
+  // Direct RLS path for databases where the RPC has not been applied yet.
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if (userErr || !user) throw new Error("Not signed in");
 
@@ -53,11 +71,6 @@ async function createWithClient(data: { name: string; country: string; currency:
     .from("organization_members")
     .insert({ organization_id: org.id, user_id: user.id, role: "owner" as const });
   if (memberErr) throw new Error(memberErr.message);
-
-  const { error: locErr } = await supabase
-    .from("inventory_locations")
-    .insert({ organization_id: org.id, name: "Main warehouse", is_default: true });
-  if (locErr) throw new Error(locErr.message);
 
   return org as CreatedOrg;
 }

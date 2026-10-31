@@ -13,13 +13,13 @@
 
 
 Variant 1 — Full (generic fill-in style)
-EQUITY is an AI-powered platform for finance teams to automate reporting, analysis, and tax compliance across invoicing, inventory, and double-entry accounting. Built with React 19 + TypeScript (TanStack Start, deployed to Cloudflare Workers), it includes a web app and a Supabase PostgreSQL database, integrating with Supabase Auth and the Lovable AI Gateway (Google Gemini 2.5 Flash) for its built-in finance analyst.
+EQUITY is an AI-powered platform for finance teams to automate reporting, analysis, and tax compliance across invoicing, inventory, and double-entry accounting. Built with React 19 + TypeScript (TanStack Start, deployed to Cloudflare Workers), it includes a web app and a Supabase PostgreSQL database, integrating with Supabase Auth and an OpenAI-compatible AI provider (OpenRouter; bring-your-own key) for its built-in finance analyst.
 Variant 2 — Short (README / one-paragraph)
 EQUITY is an AI-powered ERP & accounting platform for finance teams to automate reporting, analysis, and compliance. Built with React 19 + TypeScript, it includes a web app and a Supabase PostgreSQL database, integrating with Supabase Auth and a Gemini-powered AI analyst grounded in live business data.
 Variant 3 — Marketing tone
 EQUITY is an AI-powered platform for finance teams to automate reporting, run instant analysis, and stay compliant — turning quotes, invoices, and stock movements into live, filing-ready books. Built with a modern React + TypeScript stack, it includes a fast web app and a secure PostgreSQL database, integrating with AI so you can ask your own numbers questions in plain language.
 Variant 4 — Technical / developer-oriented
-EQUITY is an AI-powered platform for finance teams to automate financial reporting, live-data analysis, and multi-jurisdiction tax compliance (GST, VAT, and more). Built with TanStack Start + React 19 (SSR on Cloudflare Workers edge runtime), it includes a web app and a Supabase PostgreSQL database with row-level multi-tenant security, integrating with Supabase Auth, Vercel AI SDK tool-calling backed by the Lovable AI Gateway (Google Gemini 2.5 Flash), and an FX/multi-currency rate service.
+EQUITY is an AI-powered platform for finance teams to automate financial reporting, live-data analysis, and multi-jurisdiction tax compliance (GST, VAT, and more). Built with TanStack Start + React 19 (SSR on Cloudflare Workers edge runtime), it includes a web app and a Supabase PostgreSQL database with row-level multi-tenant security, integrating with Supabase Auth, Vercel AI SDK tool-calling backed by an OpenAI-compatible AI provider (OpenRouter; bring-your-own key), and an FX/multi-currency rate service.
 Variant 5 — Product-hunt / launch blurb
 EQUITY is an AI-powered platform for finance teams to automate reporting, analysis, and compliance — without spreadsheets or five disconnected tools. Built with React 19 + TypeScript, it includes a web app and a managed PostgreSQL database, integrating with Supabase and Google Gemini to power Freya, the AI finance analyst that answers "What's my profit?" from your real data.
 Variant 6 — Investor / bank-facing (formal)
@@ -304,7 +304,7 @@ Protect brand trust (and yourself from refund/chargeback pain) by never overclai
 > Template: "EQUITY is an AI-powered platform for finance teams to [automate reporting/analysis/compliance]. Built with [framework], it includes a web app and [database], integrating with [key external services]."
 
 **V1 — Full (template filled):**
-> EQUITY is an AI-powered platform for finance teams to automate reporting, analysis, and tax compliance across invoicing, inventory, and double-entry accounting. Built with React 19 + TypeScript (TanStack Start, deployed to Cloudflare Workers), it includes a web app and a Supabase PostgreSQL database, integrating with Supabase Auth and the Lovable AI Gateway (Google Gemini 2.5 Flash) for its built-in finance analyst.
+> EQUITY is an AI-powered platform for finance teams to automate reporting, analysis, and tax compliance across invoicing, inventory, and double-entry accounting. Built with React 19 + TypeScript (TanStack Start, deployed to Cloudflare Workers), it includes a web app and a Supabase PostgreSQL database, integrating with Supabase Auth and an OpenAI-compatible AI provider (OpenRouter; bring-your-own key) for its built-in finance analyst.
 
 **V2 — Short (README / one-paragraph):**
 > EQUITY is an AI-powered ERP & accounting platform for finance teams to automate reporting, analysis, and compliance. Built with React 19 + TypeScript, it includes a web app and a Supabase PostgreSQL database, integrating with Supabase Auth and a Gemini-powered AI analyst grounded in live business data.
@@ -313,7 +313,7 @@ Protect brand trust (and yourself from refund/chargeback pain) by never overclai
 > EQUITY is an AI-powered platform for finance teams to automate reporting, run instant analysis, and stay compliant — turning quotes, invoices, and stock movements into live, filing-ready books. Built with a modern React + TypeScript stack, it includes a fast web app and a secure PostgreSQL database, integrating with AI so you can ask your own numbers questions in plain language.
 
 **V4 — Technical / developer-oriented:**
-> EQUITY is an AI-powered platform for finance teams to automate financial reporting, live-data analysis, and multi-jurisdiction tax compliance (GST, VAT, and more). Built with TanStack Start + React 19 (SSR on Cloudflare Workers edge runtime), it includes a web app and a Supabase PostgreSQL database with row-level multi-tenant security, integrating with Supabase Auth, Vercel AI SDK tool-calling backed by the Lovable AI Gateway (Google Gemini 2.5 Flash), and FX/multi-currency rate management.
+> EQUITY is an AI-powered platform for finance teams to automate financial reporting, live-data analysis, and multi-jurisdiction tax compliance (GST, VAT, and more). Built with TanStack Start + React 19 (SSR on Cloudflare Workers edge runtime), it includes a web app and a Supabase PostgreSQL database with row-level multi-tenant security, integrating with Supabase Auth, Vercel AI SDK tool-calling backed by an OpenAI-compatible AI provider (OpenRouter; bring-your-own key), and FX/multi-currency rate management.
 
 **V5 — Launch blurb (Product Hunt style):**
 > EQUITY is an AI-powered platform for finance teams to automate reporting, analysis, and compliance — without spreadsheets or five disconnected tools. Built with React 19 + TypeScript, it includes a web app and a managed PostgreSQL database, integrating with Supabase and Google Gemini to power Freya, the AI finance analyst that answers "What's my profit?" from your real data.

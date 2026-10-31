@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as AuthenticatedAccountingRouteImport } from './routes/_authenticated/accounting'
 import { Route as AuthenticatedAiAgentRouteImport } from './routes/_authenticated/ai-agent'
 import { Route as AuthenticatedBillPaymentsRouteImport } from './routes/_authenticated/bill-payments'
@@ -34,9 +33,8 @@ import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedVendorsRouteImport } from './routes/_authenticated/vendors'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiDemoRouteImport } from './routes/api/demo'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
-import { Route as ToolsIndexRouteImport } from './routes/tools.index'
-import { Route as ToolsInvoiceRouteImport } from './routes/tools.invoice'
 import { Route as AuthenticatedInvoicesIndexRouteImport } from './routes/_authenticated/invoices.index'
 import { Route as AuthenticatedInvoicesInvoiceIdRouteImport } from './routes/_authenticated/invoices.$invoiceId'
 import { Route as AuthenticatedInvoicesNewRouteImport } from './routes/_authenticated/invoices.new'
@@ -58,11 +56,6 @@ const LoginRoute = LoginRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsRoute = ToolsRouteImport.update({
-  id: '/tools',
-  path: '/tools',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountingRoute = AuthenticatedAccountingRouteImport.update({
@@ -168,20 +161,15 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDemoRoute = ApiDemoRouteImport.update({
+  id: '/api/demo',
+  path: '/api/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsIndexRoute = ToolsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ToolsRoute,
-} as any)
-const ToolsInvoiceRoute = ToolsInvoiceRouteImport.update({
-  id: '/invoice',
-  path: '/invoice',
-  getParentRoute: () => ToolsRoute,
 } as any)
 const AuthenticatedInvoicesIndexRoute =
   AuthenticatedInvoicesIndexRouteImport.update({
@@ -206,7 +194,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
-  '/tools': typeof ToolsRouteWithChildren
   '/accounting': typeof AuthenticatedAccountingRoute
   '/ai-agent': typeof AuthenticatedAiAgentRoute
   '/bill-payments': typeof AuthenticatedBillPaymentsRoute
@@ -227,9 +214,8 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/vendors': typeof AuthenticatedVendorsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/demo': typeof ApiDemoRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/tools/invoice': typeof ToolsInvoiceRoute
-  '/tools/': typeof ToolsIndexRoute
   '/invoices/$invoiceId': typeof AuthenticatedInvoicesInvoiceIdRoute
   '/invoices/new': typeof AuthenticatedInvoicesNewRoute
   '/invoices/': typeof AuthenticatedInvoicesIndexRoute
@@ -257,9 +243,8 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/vendors': typeof AuthenticatedVendorsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/demo': typeof ApiDemoRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/tools/invoice': typeof ToolsInvoiceRoute
-  '/tools': typeof ToolsIndexRoute
   '/invoices/$invoiceId': typeof AuthenticatedInvoicesInvoiceIdRoute
   '/invoices/new': typeof AuthenticatedInvoicesNewRoute
   '/invoices': typeof AuthenticatedInvoicesIndexRoute
@@ -270,7 +255,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
-  '/tools': typeof ToolsRouteWithChildren
   '/_authenticated/accounting': typeof AuthenticatedAccountingRoute
   '/_authenticated/ai-agent': typeof AuthenticatedAiAgentRoute
   '/_authenticated/bill-payments': typeof AuthenticatedBillPaymentsRoute
@@ -291,9 +275,8 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/vendors': typeof AuthenticatedVendorsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/demo': typeof ApiDemoRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/tools/invoice': typeof ToolsInvoiceRoute
-  '/tools/': typeof ToolsIndexRoute
   '/_authenticated/invoices/$invoiceId': typeof AuthenticatedInvoicesInvoiceIdRoute
   '/_authenticated/invoices/new': typeof AuthenticatedInvoicesNewRoute
   '/_authenticated/invoices/': typeof AuthenticatedInvoicesIndexRoute
@@ -304,7 +287,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
-    | '/tools'
     | '/accounting'
     | '/ai-agent'
     | '/bill-payments'
@@ -325,9 +307,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/vendors'
     | '/api/chat'
+    | '/api/demo'
     | '/auth/callback'
-    | '/tools/invoice'
-    | '/tools/'
     | '/invoices/$invoiceId'
     | '/invoices/new'
     | '/invoices/'
@@ -355,9 +336,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/vendors'
     | '/api/chat'
+    | '/api/demo'
     | '/auth/callback'
-    | '/tools/invoice'
-    | '/tools'
     | '/invoices/$invoiceId'
     | '/invoices/new'
     | '/invoices'
@@ -367,7 +347,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/onboarding'
-    | '/tools'
     | '/_authenticated/accounting'
     | '/_authenticated/ai-agent'
     | '/_authenticated/bill-payments'
@@ -388,9 +367,8 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/vendors'
     | '/api/chat'
+    | '/api/demo'
     | '/auth/callback'
-    | '/tools/invoice'
-    | '/tools/'
     | '/_authenticated/invoices/$invoiceId'
     | '/_authenticated/invoices/new'
     | '/_authenticated/invoices/'
@@ -401,8 +379,8 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
-  ToolsRoute: typeof ToolsRouteWithChildren
   ApiChatRoute: typeof ApiChatRoute
+  ApiDemoRoute: typeof ApiDemoRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
@@ -434,13 +412,6 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tools': {
-      id: '/tools'
-      path: '/tools'
-      fullPath: '/tools'
-      preLoaderRoute: typeof ToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/accounting': {
@@ -583,26 +554,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/demo': {
+      id: '/api/demo'
+      path: '/api/demo'
+      fullPath: '/api/demo'
+      preLoaderRoute: typeof ApiDemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/tools/': {
-      id: '/tools/'
-      path: '/'
-      fullPath: '/tools/'
-      preLoaderRoute: typeof ToolsIndexRouteImport
-      parentRoute: typeof ToolsRoute
-    }
-    '/tools/invoice': {
-      id: '/tools/invoice'
-      path: '/invoice'
-      fullPath: '/tools/invoice'
-      preLoaderRoute: typeof ToolsInvoiceRouteImport
-      parentRoute: typeof ToolsRoute
     }
     '/_authenticated/invoices/': {
       id: '/_authenticated/invoices/'
@@ -693,25 +657,13 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
-interface ToolsRouteChildren {
-  ToolsInvoiceRoute: typeof ToolsInvoiceRoute
-  ToolsIndexRoute: typeof ToolsIndexRoute
-}
-
-const ToolsRouteChildren: ToolsRouteChildren = {
-  ToolsInvoiceRoute: ToolsInvoiceRoute,
-  ToolsIndexRoute: ToolsIndexRoute,
-}
-
-const ToolsRouteWithChildren = ToolsRoute._addFileChildren(ToolsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
-  ToolsRoute: ToolsRouteWithChildren,
   ApiChatRoute: ApiChatRoute,
+  ApiDemoRoute: ApiDemoRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport

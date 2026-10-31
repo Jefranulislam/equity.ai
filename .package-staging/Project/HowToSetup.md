@@ -1,6 +1,6 @@
 # HowToSetup — Install Equity.AI from scratch
 
-Three install paths are described: **A) VPS (bare metal/systemd)**, **B) Docker Compose**, and the **database setup** (Supabase) they share. A hosted **Cloudflare deploy** is included as option C for the public demo.
+Three install paths are described: **A) VPS (bare metal/systemd)**, **B) Docker Compose**, and the **database setup** (Supabase) they share. A hosted **Cloudflare deploy** is included as option C, and **static hosting (Hostinger / Netlify)** as option D.
 
 Estimated time: 20–40 minutes. You will create accounts on **[supabase.com](https://supabase.com)** (free tier works) and either run locally/VPS/Docker, or optionally deploy to Cloudflare.
 
@@ -50,7 +50,9 @@ Requirements: Bun ≥ 1.2 (or Node 20+, commands below use Bun).
 
 ```bash
 bun install                # restores all packages from bun.lock (or: npm ci)
-bun run build              # production build (Vite + Cloudflare Workers target)
+bun run build:worker       # production build (Vite + Cloudflare Workers target)
+
+> **Note:** the default `npm run build` now produces a **static SPA** output (see Target D below). Targets A, B and C need the Workers build, hence `build:worker`.
 ```
 
 > **Memory tip:** on machines with <4 GB free RAM the SSR stage can fail with `FATAL: JavaScript heap out of memory`. Fix by raising Node's heap once: `NODE_OPTIONS=--max-old-space-size=6144 bun run build` (PowerShell: `$env:NODE_OPTIONS='--max-old-space-size=6144'; bun run build`).
@@ -104,11 +106,29 @@ The compose file contains **only the application**; the database lives in your S
 The Cloudflare Vite plugin emits a deployable worker config at `dist/server/wrangler.json` during the build:
 
 ```bash
-bun run build
+bun run build:worker
 bun x wrangler deploy dist/server
 ```
 
-Rename the default worker name in `wrangler.jsonc` first if needed. Add the same secrets in the Cloudflare dashboard (**Workers → your worker → Settings → Variables & Secrets**): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (+ optional `LOVABLE_API_KEY` / `AI_API_KEY`).
+Rename the default worker name in `wrangler.jsonc` first if needed. Add the same secrets in the Cloudflare dashboard (**Workers → your worker → Settings → Variables & Secrets**): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (+ optional `AI_API_KEY`).
+
+### Target D — Static hosting (Hostinger / Netlify) — easiest public demo
+
+`npm run build` (the default) produces a **pure static SPA** — no server required:
+
+- `dist/` contains `index.html`, `assets/` and an `.htaccess` that rewrites every deep link (`/login`, `/invoices/123`, …) to the SPA entry.
+- Just point the host at the `dist` output directory.
+
+Because no server functions run on a static host, the app uses the Supabase client and the `invite_member` RPC for everything mutating — make sure the **`VITE_*` variables are present in the hosting build environment** (they are baked into the client bundle at build time):
+
+```dotenv
+VITE_SUPABASE_URL=https://abcdefgh.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
+```
+
+Freya (AI chat) needs a working AI key in the environment or shows a clear "not configured" error; every other module works fully offline.
+
+**Migrations matter on static hosts.** Team invites and workspace creation run through Supabase RPCs (`invite_member`, `create_workspace`) instead of server functions, so the database must include them — `database/schema.sql` already does. If your database was set up earlier, apply the two RPC migrations from `supabase/migrations/20260617000002_invite_member_rpc.sql` and `20261025000000_create_workspace_rpc.sql` via the Supabase SQL Editor once.
 
 ## Step 3 — First login & admin access
 
@@ -127,11 +147,11 @@ Rename the default worker name in `wrangler.jsonc` first if needed. Add the same
 
 Pick one route in `.env`:
 
-- **Option A — Lovable AI Gateway** (default): `LOVABLE_API_KEY=your_key` (create at lovable.dev → Cloud → AI Gateway). Uses model `google/gemini-2.5-flash`.
-- **Option B — any OpenAI-compatible endpoint**:
+- **Option A — OpenRouter (bring-your-own, per user)**: each user pastes their own OpenRouter key in the app (**Settings → AI**) — no server env needed. Keys are stored in Supabase auth `user_metadata` and create at [openrouter.ai/keys](https://openrouter.ai/keys). Model is user-selectable; default `google/gemini-2.5-flash`.
+- **Option B — platform-wide OpenAI-compatible endpoint**:
   ```dotenv
-  AI_API_KEY=sk-...
-  AI_BASE_URL=https://api.openai.com/v1      # or OpenRouter/your proxy
+  AI_API_KEY=sk-...                              # an OpenRouter key works here too
+  AI_BASE_URL=https://openrouter.ai/api/v1       # or OpenAI/your proxy
   AI_MODEL=gpt-4o-mini
   ```
 

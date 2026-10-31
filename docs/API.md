@@ -41,7 +41,7 @@ The full, authoritative matrix lives in the RLS policies of `database/schema.sql
 | Body | `{ messages: UIMessage[], organizationId: string }` ⇒ **400** otherwise. |
 | Response | Server-sent-event stream (AI SDK UI message stream). |
 | Grounding | Calls tools (`financial_summary`, `recent_invoices`, `recent_bills`, `inventory_snapshot`, `tax_summary`) **scoped to `organizationId`** via the admin client; all tool output derives from the caller's workspace only. |
-| Config | Needs `LOVABLE_API_KEY` (Lovable AI Gateway) or `AI_API_KEY` (+ optional `AI_BASE_URL`, `AI_MODEL`). Unconfigured ⇒ **500** with a "not configured" message. |
+| Config | Uses the user's OpenRouter key (Settings → AI) or `AI_API_KEY` (+ optional `AI_BASE_URL`, `AI_MODEL`). Unconfigured ⇒ **500** with a "not configured" message. |
 
 > The admin client is used here because tool queries execute outside RLS; the endpoint therefore re-implements the org isolation check manually (membership test above) before issuing any scoped read.
 

@@ -110,7 +110,7 @@ bun run build:worker
 bun x wrangler deploy dist/server
 ```
 
-Rename the default worker name in `wrangler.jsonc` first if needed. Add the same secrets in the Cloudflare dashboard (**Workers → your worker → Settings → Variables & Secrets**): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (+ optional `LOVABLE_API_KEY` / `AI_API_KEY`).
+Rename the default worker name in `wrangler.jsonc` first if needed. Add the same secrets in the Cloudflare dashboard (**Workers → your worker → Settings → Variables & Secrets**): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (+ optional `AI_API_KEY`).
 
 ### Target D — Static hosting (Hostinger / Netlify) — easiest public demo
 
@@ -127,6 +127,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
 ```
 
 Freya (AI chat) needs a working AI key in the environment or shows a clear "not configured" error; every other module works fully offline.
+
+**Migrations matter on static hosts.** Team invites and workspace creation run through Supabase RPCs (`invite_member`, `create_workspace`) instead of server functions, so the database must include them — `database/schema.sql` already does. If your database was set up earlier, apply the two RPC migrations from `supabase/migrations/20260617000002_invite_member_rpc.sql` and `20261025000000_create_workspace_rpc.sql` via the Supabase SQL Editor once.
 
 ## Step 3 — First login & admin access
 
@@ -145,11 +147,11 @@ Freya (AI chat) needs a working AI key in the environment or shows a clear "not 
 
 Pick one route in `.env`:
 
-- **Option A — Lovable AI Gateway** (default): `LOVABLE_API_KEY=your_key` (create at lovable.dev → Cloud → AI Gateway). Uses model `google/gemini-2.5-flash`.
-- **Option B — any OpenAI-compatible endpoint**:
+- **Option A — OpenRouter (bring-your-own, per user)**: each user pastes their own OpenRouter key in the app (**Settings → AI**) — no server env needed. Keys are stored in Supabase auth `user_metadata` and create at [openrouter.ai/keys](https://openrouter.ai/keys). Model is user-selectable; default `google/gemini-2.5-flash`.
+- **Option B — platform-wide OpenAI-compatible endpoint**:
   ```dotenv
-  AI_API_KEY=sk-...
-  AI_BASE_URL=https://api.openai.com/v1      # or OpenRouter/your proxy
+  AI_API_KEY=sk-...                              # an OpenRouter key works here too
+  AI_BASE_URL=https://openrouter.ai/api/v1       # or OpenAI/your proxy
   AI_MODEL=gpt-4o-mini
   ```
 

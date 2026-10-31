@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, FileText, Users, Boxes, Receipt, Truck,
   Wallet, Calculator, TrendingUp, ShieldCheck, Sparkles, LogOut, Settings, CircleDollarSign, BarChart3,
-  FileCheck, ShoppingCart, FileMinus, UserCog, Banknote, Wrench,
+  FileCheck, ShoppingCart, FileMinus, UserCog, Banknote,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useOrg } from "@/contexts/org-context";
@@ -77,14 +77,6 @@ export function AppSidebar() {
             <Sparkles className="size-3.5" />
             <span>AI Agent</span>
             <span className="ml-auto text-[10px] bg-white/20 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Beta</span>
-          </Link>
-          <Link
-            to="/tools"
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-md font-medium text-muted-foreground hover:text-foreground hover:bg-accent/5 transition-colors"
-          >
-            <Wrench className="size-3.5" strokeWidth={2} />
-            <span>Free Tools</span>
-            <span className="ml-auto text-[10px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Free</span>
           </Link>
         </div>
       </nav>
