@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { signInAsDemo } from "@/lib/demo";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo-credentials";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -15,6 +17,18 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const demoLogin = async () => {
+    setBusy(true);
+    try {
+      await signInAsDemo();
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Demo login failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -76,6 +90,21 @@ function LoginPage() {
               {mode === "signin" ? "Sign in to your ledger." : "We'll spin up your workspace automatically."}
             </p>
           </div>
+
+          {mode === "signin" && (
+            <div className="space-y-2">
+              <button
+                type="button" disabled={busy} onClick={demoLogin}
+                className="w-full h-10 rounded-md border border-accent/30 bg-accent/5 text-accent font-medium text-sm hover:bg-accent/10 transition-colors disabled:opacity-50"
+              >One-tap demo login</button>
+              <p className="text-center text-[11px] text-muted-foreground">
+                {DEMO_EMAIL} · {DEMO_PASSWORD}
+              </p>
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />or sign in with email<span className="h-px flex-1 bg-border" />
+              </div>
+            </div>
+          )}
 
           <form onSubmit={submit} className="space-y-3">
             {mode === "signup" && (

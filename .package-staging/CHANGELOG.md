@@ -39,7 +39,6 @@ Dates are approximate build dates reconstructed from the migration log; adjust o
 - **Multi-currency** (13 currencies) with an FX-rate table.
 - **Productivity:** ⌘K command palette with live search across invoices/customers/vendors/products; dashboard KPIs (revenue YTD, receivables + overdue, payables, expenses YTD, 12-month invoice chart).
 - **Country onboarding presets:** US, UK, DE, FR, ES, IT, NL, India (IN-GST), UAE (AE-VAT), Singapore, Australia, Canada, Japan, Brazil.
-- **Free Business Document Tools:** ten no-login invoice/document generators (GST & VAT invoices, quotation, proforma, purchase order, delivery challan, commercial invoice, consulting invoice, packing list) with 8 templates, 13 currencies, PDF download.
 
 ## [Planned]
 

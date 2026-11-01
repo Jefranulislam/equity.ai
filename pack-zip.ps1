@@ -66,7 +66,7 @@ Copy-Item (Join-Path $root '.env.example') (Join-Path $project '.env.example') -
 $must = @(
   'README.md','HowToSetup.md','CLAUDE.md','CHANGELOG.md','LICENSE-NOTE.md','.env.example',
   'docker-compose.yml','database\schema.sql','database\seed.sql',
-  'Project\package.json','Project\bun.lock','Project\package-lock.json',
+  'Project\package.json','Project\bun.lock',
   'Project\src','Project\wrangler.jsonc','Project\vite.config.ts'
 )
 foreach ($m in $must) {

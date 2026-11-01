@@ -48,12 +48,27 @@ function Page() {
   const invite = async () => {
     if (!currentOrg || !email.trim()) return;
     setSaving(true);
+    const payload = { email: email.trim(), role: role as Exclude<Role, "owner">, organization_id: currentOrg.id };
+    let invited = false;
     try {
-      await inviteFn({ data: { email: email.trim(), role: role as Exclude<Role, "owner">, organization_id: currentOrg.id } });
+      // SSR path: TanStack server function (service-role client).
+      await inviteFn({ data: payload });
+      invited = true;
+    } catch {
+      // Static-deployment fallback: SECURITY DEFINER RPC
+      // (supabase/migrations/20260617000002_invite_member_rpc.sql).
+      const { error } = await supabase.rpc("invite_member", {
+        p_email: payload.email,
+        p_role: payload.role,
+        p_org: payload.organization_id,
+      });
+      if (!error) invited = true;
+    }
+    if (invited) {
       toast.success("Member added");
       setEmail(""); setOpen(false); load();
-    } catch (e) {
-      toast.error((e as Error).message);
+    } else {
+      toast.error("Failed to invite member — check the email is registered and your role.");
     }
     setSaving(false);
   };

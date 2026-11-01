@@ -52,7 +52,6 @@ The full commercial cycle, end to end:
 - **Books:** True double-entry accounting — chart of accounts, journal entries, trial balance.
 - **Compliance:** Output vs. input tax, net liability, filing-ready registers and CSV exports, per tax regime (GST, VAT, and more).
 - **Intelligence:** Freya, an AI finance analyst that queries your live data with transparent, inspectable tool calls.
-- **Zero-friction acquisition:** A free, no-login suite of 10 business document tools (invoice & document generators) that funnels real business owners into the product.
 
 ---
 
@@ -143,14 +142,7 @@ The full commercial cycle, end to end:
 - **⌘K command palette:** live search across invoices, customers, vendors, and products from anywhere.
 - Dashboard KPIs: Revenue YTD, receivables (+ overdue count), payables, expenses YTD, 12-month invoice-volume chart.
 
-### 5.11 Free Business Document Tools (acquisition funnel — "Popular")
-No login, no signup, no card. Ten generators:
-Invoice Generator (GST: CGST/SGST/IGST + HSN/SAC), Quotation, Proforma Invoice, Purchase Order, Delivery Challan, Commercial Invoice, Consulting Invoice, Invoice with VAT, Invoice Formats, Packing List.
-- **8 visual templates** (Classic, Modern Blue, Minimalist, Elegant Dark, Green Corporate, Bold Orange, Purple Creative, Warm Paper).
-- **13 currencies**, PDF download, discounts, amount-in-words, bank details.
-- *(Marketing framing: "free forever" tools act as a genuine lead magnet — give value before asking anything.)*
-
-### 5.12 Platform & security
+### 5.11 Platform & security
 - Multi-tenant by design with **row-level security** at the database layer.
 - Multi-currency with internal FX rate table.
 - Modern stack (React 19, TypeScript, serverless edge runtime, PostgreSQL) — fast, always-on, no local install.
@@ -181,9 +173,6 @@ Write every channel around these five. Each is a claim + proof.
 AI-powered ERP · AI accounting software for small business · cloud ERP for SMBs · double-entry accounting software · invoice and inventory software · GST invoice software · VAT accounting · small business financial dashboard
 
 ### Long-tail / intent keywords
-- `free invoice generator with GST / HSN` *(free-tool funnel)*
-- `free quotation maker online no signup`
-- `proforma invoice generator free download PDF`
 - `invoice software with automatic journal entries`
 - `accounts receivable and payable in one app`
 - `small business tax compliance checklist / output input tax calculator`
@@ -194,7 +183,6 @@ AI-powered ERP · AI accounting software for small business · cloud ERP for SMB
 ### Search-intent grouping
 | Intent | Asset to build |
 |---|---|
-| Free tools (top of funnel) | Tool landing pages per generator (10 pages) |
 | Comparison | "Equity.AI vs QuickBooks/Zoho Books/Tally" pages |
 | Problem-aware | "Why your books never match your bank" content |
 | Solution-aware | Feature pages: invoicing, inventory, compliance, AI analyst |
@@ -251,7 +239,6 @@ AI-powered ERP · AI accounting software for small business · cloud ERP for SMB
 
 ### v0.x — Foundation *(⚠️ dates TBD from migration log 2026-05→06)*
 - 🔒 Auth with auto-provisioned workspace; team member management with roles.
-- 🔒 **Free Business Document Tools:** 10 no-login generators (invoice GST/VAT, quotation, proforma, PO, delivery challan, commercial invoice, consulting invoice, packing list, formats) with 8 templates, 13 currencies, PDF download.
 - 🔒 Country onboarding presets (US, UK, DE, FR, ES, IT, NL, IN-GST, AE-VAT, SG, AU, CA, JP, BR).
 
 ---
@@ -291,7 +278,6 @@ Protect brand trust (and yourself from refund/chargeback pain) by never overclai
 | Channel | Pull from | Hero hook |
 |---|---|---|
 | Landing page hero | §1 taglines, §6 loss-aversion line | "Run your whole business on one ledger." |
-| Free-tools pages | §5.11 | "Free invoice generator — no signup, no card." |
 | Ads (search) | §7 keywords, §3 pain rows | "Your books, your stock, your tax — one live ledger." |
 | Social proof posts | §9 changelog items (ship announcements) | "Invoices now post to your ledger automatically." |
 | Comparison/SEO pages | §7 competitor keywords | "Equity.AI vs [Tool]: one ledger replaces five tools." |

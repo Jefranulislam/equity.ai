@@ -35,7 +35,6 @@ Add PNG files to `docs/screenshots/` (see names below). Also live: use the worki
 | `docs/screenshots/invoice.png` | Invoice editor + printable PDF view |
 | `docs/screenshots/reporting.png` | P&L / Balance Sheet / Cash Flow |
 | `docs/screenshots/ai-agent.png` | Freya AI chat with visible tool-call traces |
-| `docs/screenshots/tools.png` | Free document tools (invoice generator) |
 
 ## Tech stack
 

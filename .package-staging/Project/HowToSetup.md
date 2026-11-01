@@ -164,7 +164,7 @@ Restart the app process afterward. Without a key, `/api/chat` answers with a cle
 | Product name & SEO description | `src/routes/__root.tsx` |
 | Sidebar logo text & navigation | `src/components/app-sidebar.tsx` |
 | Login page tagline | `src/routes/login.tsx` |
-| Currency defaults & country presets | `src/routes/onboarding.tsx`, `src/routes/tools/index.tsx` |
+| Currency defaults & country presets | `src/routes/onboarding.tsx` |
 | Invoice PDF look | `src/routes/_authenticated/routes` invoice pages + print CSS |
 
 After edits, rebuild and restart (Target A/B) or `wrangler deploy` (Target C).

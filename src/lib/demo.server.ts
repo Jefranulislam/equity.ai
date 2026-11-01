@@ -8,9 +8,8 @@
 // (auto-posting, tax recompute, numbering, low-stock) fires exactly as in prod.
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo-credentials";
 
-export const DEMO_EMAIL = "demo@equity.ai";
-export const DEMO_PASSWORD = "Demo#2026-Review";
 const DEMO_ORG_NAME = "Acme Trading Co.";
 
 /* ---------------------------------------------------------------- facade ——— */
@@ -80,16 +79,26 @@ async function ensureDemoUser(): Promise<string> {
     email_confirm: true,
     user_metadata: { full_name: "Demo Reviewer" },
   });
-  if (created?.user?.id) return created.user.id as string;
+  let userId = created?.user?.id ? String(created.user.id) : null;
 
-  // "already registered" → reuse the existing account
-  const { data: link, error: linkErr } = await sb.auth.admin.generateLink({
-    type: "magiclink",
-    email: DEMO_EMAIL,
+  if (!userId) {
+    // "already registered" → reuse the existing account
+    const { data: link, error: linkErr } = await sb.auth.admin.generateLink({
+      type: "magiclink",
+      email: DEMO_EMAIL,
+    });
+    if (linkErr || !link?.user?.id)
+      throw new Error(`demo user lookup: ${String(linkErr?.message ?? "no id")}`);
+    userId = String(link.user.id);
+  }
+
+  // Keep the demo password in sync so the /login one-tap always works.
+  const { error: pwErr } = await sb.auth.admin.updateUserById(userId, {
+    password: DEMO_PASSWORD,
+    email_confirm: true,
   });
-  if (linkErr || !link?.user?.id)
-    throw new Error(`demo user lookup: ${String(linkErr?.message ?? "no id")}`);
-  return String(link.user.id);
+  if (pwErr) throw new Error(`demo password sync: ${String(pwErr.message ?? pwErr)}`);
+  return userId;
 }
 
 /* ------------------------------------------------------ seed the workspace —— */

@@ -1,5 +1,5 @@
-﻿-- =============================================================================
--- Equity.AI — Database schema (creates the database from scratch)
+-- =============================================================================
+-- Equity.AI â€” Database schema (creates the database from scratch)
 -- =============================================================================
 -- Generated from supabase/migrations/*.sql in timestamp order.
 --
@@ -1367,7 +1367,7 @@ CREATE TRIGGER trg_ri_upd BEFORE UPDATE ON public.recurring_invoices FOR EACH RO
 -- Migration: 20260617000000_ ix_handle_new_user_ownership
 -- ----------------------------------------------------------
 
--- Ensure handle_new_user runs as postgres (superuser â†’ BYPASSRLS).
+-- Ensure handle_new_user runs as postgres (superuser Ã¢â€ â€™ BYPASSRLS).
 -- Without this, SECURITY DEFINER on a non-superuser owner doesn't bypass RLS,
 -- causing auth.uid() = NULL inside the trigger to fail the org insert policy.
 ALTER FUNCTION public.handle_new_user() OWNER TO postgres;
@@ -1396,4 +1396,91 @@ END $$;
 
 ALTER FUNCTION public.handle_new_user() OWNER TO postgres;
 
+
+
+-- -----------------------------------------------------------------------------
+-- invite_member RPC (from supabase/migrations/20260617000002_invite_member_rpc.sql)
+-- SECURITY DEFINER RPC for inviting team members without service-role privileges.
+-- Lets the client call supabase.rpc('invite_member', ...) -- required on static
+-- deployments where TanStack server functions are not available.
+-- -----------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.invite_member(p_email TEXT, p_role public.org_role, p_org UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_user UUID;
+  v_caller_ok BOOLEAN;
+BEGIN
+  -- Caller must be owner/admin of the org
+  SELECT EXISTS (
+    SELECT 1 FROM public.organization_members
+    WHERE organization_id = p_org AND user_id = auth.uid() AND role IN ('owner','admin')
+  ) INTO v_caller_ok;
+  IF NOT v_caller_ok THEN
+    RAISE EXCEPTION 'Only owners/admins can invite members';
+  END IF;
+
+  -- Look up the target user by email inside auth.users
+  SELECT id INTO v_user FROM auth.users WHERE lower(email) = lower(p_email) LIMIT 1;
+  IF v_user IS NULL THEN
+    RAISE EXCEPTION 'No user found with that email. Ask them to sign up first.';
+  END IF;
+
+  INSERT INTO public.organization_members (organization_id, user_id, role)
+  VALUES (p_org, v_user, p_role)
+  ON CONFLICT (organization_id, user_id) DO NOTHING;
+END $$;
+
+REVOKE ALL ON FUNCTION public.invite_member(TEXT, public.org_role, UUID) FROM anon;
+GRANT EXECUTE ON FUNCTION public.invite_member(TEXT, public.org_role, UUID) TO authenticated;
+
+
+-- -----------------------------------------------------------------------------
+-- create_workspace RPC (from supabase/migrations/20261025000000_create_workspace_rpc.sql)
+-- SECURITY DEFINER RPC for workspace creation on static deployments where server
+-- functions are unavailable. Bypasses RLS for the org + owner-membership inserts;
+-- default location/account/expense-category seeding happens via AFTER INSERT triggers.
+-- -----------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.create_workspace(
+  p_name TEXT, p_country TEXT, p_currency TEXT, p_tax_regime TEXT DEFAULT NULL
+)
+RETURNS TABLE (id UUID, name TEXT, currency TEXT, country TEXT)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth AS $$
+DECLARE
+  v_uid UUID;
+  v_org_id UUID;
+BEGIN
+  SELECT auth.uid() INTO v_uid;
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not signed in';
+  END IF;
+
+  -- Self-service provisioning only: caller must not have any org membership yet.
+  IF EXISTS (SELECT 1 FROM public.organization_members WHERE user_id = v_uid) THEN
+    RAISE EXCEPTION 'You already have a workspace. Use the workspace switcher.';
+  END IF;
+
+  INSERT INTO public.organizations (name, country, currency, tax_regime, created_by)
+  VALUES (p_name, p_country, p_currency, p_tax_regime, v_uid)
+  RETURNING public.organizations.id INTO v_org_id;
+
+  INSERT INTO public.organization_members (organization_id, user_id, role)
+  VALUES (v_org_id, v_uid, 'owner');
+
+  RETURN QUERY
+  SELECT o.id, o.name, o.currency, o.country
+  FROM public.organizations o
+  WHERE o.id = v_org_id;
+END $$;
+
+-- Owner must be the table owner so SECURITY DEFINER reliably bypasses RLS.
+ALTER FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) OWNER TO postgres;
+
+REVOKE ALL ON FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) FROM anon;
+GRANT EXECUTE ON FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) TO authenticated;
 

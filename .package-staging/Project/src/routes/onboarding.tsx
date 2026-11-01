@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Building2, Sparkles, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { createOrganization } from "@/lib/org.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 import { useOrg } from "@/contexts/org-context";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,46 @@ const COUNTRIES: { code: string; name: string; currency: string; regime: string 
 
 const CURRENCIES = ["USD", "EUR", "GBP", "INR", "AED", "SGD", "AUD", "CAD", "JPY", "BRL", "CHF", "CNY", "MXN", "ZAR"];
 
+interface CreatedOrg { id: string; name: string | null; currency: string | null | undefined; country: string | null | undefined; }
+
+type NewOrgInput = { name: string; country: string; currency: string; tax_regime?: string };
+
+/**
+ * Static-deployment fallback (no TanStack server functions available).
+ *
+ * Preferred path: `create_workspace` SECURITY DEFINER RPC — atomic (org row +
+ * owner membership in one transaction) and immune to RLS policy drift.
+ * Last resort (DB without the RPC): direct RLS inserts; the
+ * `trg_create_default_location` trigger already seeds the default location.
+ */
+async function createWithClient(data: NewOrgInput): Promise<CreatedOrg> {
+  const rpc = await supabase.rpc("create_workspace", {
+    p_name: data.name,
+    p_country: data.country,
+    p_currency: data.currency,
+    p_tax_regime: data.tax_regime ?? null,
+  });
+  if (!rpc.error && rpc.data) return rpc.data as CreatedOrg;
+
+  // Direct RLS path for databases where the RPC has not been applied yet.
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) throw new Error("Not signed in");
+
+  const { data: org, error: orgErr } = await supabase
+    .from("organizations")
+    .insert({ name: data.name, country: data.country, currency: data.currency, tax_regime: data.tax_regime, created_by: user.id })
+    .select("id,name,currency,country")
+    .single();
+  if (orgErr) throw new Error(orgErr.message);
+
+  const { error: memberErr } = await supabase
+    .from("organization_members")
+    .insert({ organization_id: org.id, user_id: user.id, role: "owner" as const });
+  if (memberErr) throw new Error(memberErr.message);
+
+  return org as CreatedOrg;
+}
+
 function Onboarding() {
   const { user, loading: authLoading } = useAuth();
   const { organizations, loading: orgLoading, refresh, setCurrentOrg } = useOrg();
@@ -63,10 +104,17 @@ function Onboarding() {
   const create = async () => {
     if (!name.trim()) return toast.error("Enter a workspace name");
     setSaving(true);
+    const payload = { name: name.trim(), country, currency, tax_regime: regime };
     try {
-      const org = await createOrganization({
-        data: { name: name.trim(), country, currency, tax_regime: regime },
-      });
+      let org: Awaited<ReturnType<typeof createOrganization>>;
+      try {
+        // SSR path: server function provisions everything with the service-role client
+        org = await createOrganization({ data: payload });
+      } catch {
+        // Static-deployment fallback: RLS allows self-service workspace creation
+        // (organizations.created_by = auth.uid() + self-membership as owner).
+        org = await createWithClient(payload);
+      }
       await refresh();
       setCurrentOrg(org);
       toast.success("Workspace ready");

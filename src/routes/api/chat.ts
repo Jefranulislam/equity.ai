@@ -3,10 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, stepCountIs, tool, type UIMessage } from "ai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import {
-  createCustomAiProvider,
-  createOpenRouterProvider,
-} from "@/lib/ai-gateway";
+import { createCustomAiProvider, createOpenRouterProvider } from "@/lib/ai-gateway";
 
 export const Route = createFileRoute("/api/chat")({
   server: {

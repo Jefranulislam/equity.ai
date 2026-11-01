@@ -1,18 +1,24 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useAuth } from "@/contexts/auth-context";
+import { createFileRoute } from "@tanstack/react-router";
+import Landing from "@/components/landing";
 
 export const Route = createFileRoute("/")({
-  component: IndexRedirect,
+  head: () => ({
+    meta: [
+      { title: "Equity.AI — AI-powered ERP & Accounting for SMBs" },
+      {
+        name: "description",
+        content:
+          "Invoices, payments, inventory, bills and double-entry accounting in one unified workspace — with Freya, an AI accountant grounded in your live ledger. Free while in beta, with a one-click demo.",
+      },
+    ],
+    scripts: [
+      {
+        // Inter Tight for display headings (Inter is loaded app-wide already)
+        src: "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&display=swap",
+        type: "stylesheet",
+        defer: true,
+      },
+    ],
+  }),
+  component: Landing,
 });
-
-function IndexRedirect() {
-  const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-sm text-muted-foreground">Loading…</div>
-      </div>
-    );
-  }
-  return <Navigate to={user ? "/dashboard" : "/login"} />;
-}

@@ -1,4 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo-credentials";
+
+/**
+ * One-tap demo sign-in for /login. Provisions/syncs the demo account and its
+ * seeded workspace via POST /api/demo, then signs in with the demo credentials.
+ */
+export async function signInAsDemo(): Promise<void> {
+  const res = await fetch("/api/demo", { method: "POST" });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? "Failed to prepare the demo workspace");
+  }
+  const { error } = await supabase.auth.signInWithPassword({
+    email: DEMO_EMAIL,
+    password: DEMO_PASSWORD,
+  });
+  if (error) throw new Error(error.message);
+}
 
 /**
  * One-click demo account. Calls POST /api/demo (server provisions the demo

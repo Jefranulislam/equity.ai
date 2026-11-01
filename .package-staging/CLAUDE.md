@@ -29,7 +29,7 @@ src/
   components/             Shared UI (app-sidebar, app-topbar, command-palette, ui/*)
   lib/                    Business logic
     members.functions.ts / org.functions.ts   Server functions (JWT-authenticated)
-    invoice-utils.ts, format.ts, number-to-words.ts, error-*.ts
+    format.ts, error-*.ts
   integrations/supabase/
     client.ts             Browser client (anon key + user JWT → RLS applies)
     client.server.ts      server-only admin client (service role, NEVER import client-side)

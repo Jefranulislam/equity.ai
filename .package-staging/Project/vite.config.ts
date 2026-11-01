@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
@@ -10,15 +9,10 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 // dist/client contains index.html + assets, and scripts/static-publish.mjs mirrors it to dist/ root.
 // `bun run build:worker` sets BUILD_TARGET=worker to keep the SSR/Cloudflare output instead.
 export default defineConfig({
+  server: { port: 8080, strictPort: true },
   plugins: [
-    // Router plugin must come before the TanStack Start plugin so route tree
-    // generation happens before the Start plugin transforms routes.
-    tanstackRouter({ target: "react", autoCodeSplitting: false }),
-    viteReact(),
-    tailwindcss(),
-    tsConfigPaths({ projects: ["./tsconfig.json"] }),
-    // BUILD_TARGET=worker → SSR/Cloudflare output; otherwise dev-only (static SPA has no dev server functions)
-    ...(process.env.BUILD_TARGET === "worker" ? [cloudflare({ viteEnvironment: { name: "ssr" } })] : []),
+    // TanStack Start includes the router generator/code splitter, which must
+    // run before JSX transformation.
     tanstackStart({
       server: { entry: "server" },
       spa: {
@@ -26,5 +20,11 @@ export default defineConfig({
         prerender: { enabled: process.env.BUILD_TARGET !== "worker" },
       },
     }),
+    viteReact(),
+    tailwindcss(),
+    tsConfigPaths({ projects: ["./tsconfig.json"] }),
+    ...(process.env.BUILD_TARGET === "worker"
+      ? [cloudflare({ viteEnvironment: { name: "ssr" } })]
+      : []),
   ],
 });
