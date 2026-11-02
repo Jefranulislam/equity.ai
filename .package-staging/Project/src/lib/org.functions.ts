@@ -1,9 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getRequest } from "@tanstack/react-start/server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const createOrganization = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((input) =>
     z.object({
       name: z.string().min(1),
@@ -12,25 +13,19 @@ export const createOrganization = createServerFn({ method: "POST" })
       tax_regime: z.string().optional(),
     }).parse(input),
   )
-  .handler(async ({ data }) => {
-    const request = getRequest();
-    const token = request.headers.get("authorization")?.replace(/^Bearer /i, "");
-    if (!token) throw new Error("Unauthorized");
-
-    // Verify user via admin client — works regardless of JWT algorithm
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) throw new Error("Unauthorized");
+  .handler(async ({ data, context }) => {
+    const userId = context.userId;
 
     const { data: org, error } = await supabaseAdmin
       .from("organizations")
-      .insert({ ...data, created_by: user.id })
+      .insert({ ...data, created_by: userId })
       .select("id,name,currency,country")
       .single();
     if (error) throw new Error(error.message);
 
     await supabaseAdmin.from("organization_members").insert({
       organization_id: org.id,
-      user_id: user.id,
+      user_id: userId,
       role: "owner",
     });
 

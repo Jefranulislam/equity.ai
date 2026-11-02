@@ -1484,3 +1484,50 @@ ALTER FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) OWNER TO postgres
 REVOKE ALL ON FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) FROM anon;
 GRANT EXECUTE ON FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) TO authenticated;
 
+
+-- Indexes on tenant (organization_id) and foreign-key columns. Idempotent.
+CREATE INDEX IF NOT EXISTS idx_organization_members_organization_id ON public.organization_members (organization_id);
+CREATE INDEX IF NOT EXISTS idx_customers_organization_id ON public.customers (organization_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_organization_id ON public.invoices (organization_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON public.invoices (customer_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_lines_organization_id ON public.invoice_lines (organization_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_lines_invoice_id ON public.invoice_lines (invoice_id);
+CREATE INDEX IF NOT EXISTS idx_payments_organization_id ON public.payments (organization_id);
+CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON public.payments (customer_id);
+CREATE INDEX IF NOT EXISTS idx_payment_invoice_links_organization_id ON public.payment_invoice_links (organization_id);
+CREATE INDEX IF NOT EXISTS idx_payment_invoice_links_payment_id ON public.payment_invoice_links (payment_id);
+CREATE INDEX IF NOT EXISTS idx_payment_invoice_links_invoice_id ON public.payment_invoice_links (invoice_id);
+CREATE INDEX IF NOT EXISTS idx_products_organization_id ON public.products (organization_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_locations_organization_id ON public.inventory_locations (organization_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_stock_organization_id ON public.inventory_stock (organization_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_stock_product_id ON public.inventory_stock (product_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_stock_location_id ON public.inventory_stock (location_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_organization_id ON public.inventory_movements (organization_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_id ON public.inventory_movements (product_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_location_id ON public.inventory_movements (location_id);
+CREATE INDEX IF NOT EXISTS idx_vendors_organization_id ON public.vendors (organization_id);
+CREATE INDEX IF NOT EXISTS idx_bills_organization_id ON public.bills (organization_id);
+CREATE INDEX IF NOT EXISTS idx_bills_vendor_id ON public.bills (vendor_id);
+CREATE INDEX IF NOT EXISTS idx_bill_lines_organization_id ON public.bill_lines (organization_id);
+CREATE INDEX IF NOT EXISTS idx_bill_lines_bill_id ON public.bill_lines (bill_id);
+CREATE INDEX IF NOT EXISTS idx_expense_categories_organization_id ON public.expense_categories (organization_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_organization_id ON public.expenses (organization_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_vendor_id ON public.expenses (vendor_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON public.expenses (category_id);
+CREATE INDEX IF NOT EXISTS idx_accounts_organization_id ON public.accounts (organization_id);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_organization_id ON public.journal_entries (organization_id);
+CREATE INDEX IF NOT EXISTS idx_journal_lines_organization_id ON public.journal_lines (organization_id);
+CREATE INDEX IF NOT EXISTS idx_journal_lines_entry_id ON public.journal_lines (entry_id);
+CREATE INDEX IF NOT EXISTS idx_journal_lines_account_id ON public.journal_lines (account_id);
+CREATE INDEX IF NOT EXISTS idx_fx_rates_organization_id ON public.fx_rates (organization_id);
+CREATE INDEX IF NOT EXISTS idx_bill_payments_organization_id ON public.bill_payments (organization_id);
+CREATE INDEX IF NOT EXISTS idx_bill_payment_links_organization_id ON public.bill_payment_links (organization_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_organization_id ON public.attachments (organization_id);
+CREATE INDEX IF NOT EXISTS idx_quotes_organization_id ON public.quotes (organization_id);
+CREATE INDEX IF NOT EXISTS idx_quote_lines_organization_id ON public.quote_lines (organization_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_organization_id ON public.purchase_orders (organization_id);
+CREATE INDEX IF NOT EXISTS idx_po_lines_organization_id ON public.po_lines (organization_id);
+CREATE INDEX IF NOT EXISTS idx_credit_notes_organization_id ON public.credit_notes (organization_id);
+CREATE INDEX IF NOT EXISTS idx_credit_note_lines_organization_id ON public.credit_note_lines (organization_id);
+CREATE INDEX IF NOT EXISTS idx_recurring_invoices_organization_id ON public.recurring_invoices (organization_id);
+

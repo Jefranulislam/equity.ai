@@ -1,40 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
-import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo-credentials";
+import { DEMO_EMAIL, DEMO_PASSWORD, DEMO_ENABLED } from "@/lib/demo-credentials";
 
 /**
- * One-tap demo sign-in for /login. Provisions/syncs the demo account and its
- * seeded workspace via POST /api/demo, then signs in with the demo credentials.
+ * One-tap demo sign-in (landing page and /login). Only available when the
+ * build sets VITE_DEMO_EMAIL and VITE_DEMO_PASSWORD. The demo account itself
+ * is created once on the server with POST /api/demo (see HowToSetup.md).
  */
-export async function signInAsDemo(): Promise<void> {
-  const res = await fetch("/api/demo", { method: "POST" });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? "Failed to prepare the demo workspace");
+export async function launchDemo(): Promise<void> {
+  if (!DEMO_ENABLED) {
+    throw new Error("Demo login is not enabled on this deployment. Please sign up for a free account.");
   }
   const { error } = await supabase.auth.signInWithPassword({
     email: DEMO_EMAIL,
     password: DEMO_PASSWORD,
   });
-  if (error) throw new Error(error.message);
-}
-
-/**
- * One-click demo account. Calls POST /api/demo (server provisions the demo
- * auth user + the pre-seeded "Acme Trading Co." workspace, mirroring
- * database/seed.sql), redeems the returned one-time token, and the caller
- * redirects to /dashboard — the whole application with 10 months of
- * realistic financial history. No signup form, no email verification.
- */
-export async function launchDemo(): Promise<void> {
-  const res = await fetch("/api/demo", { method: "POST" });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? "Failed to prepare the demo workspace");
+  if (error) {
+    throw new Error("The demo account is not set up yet. Please sign up for a free account.");
   }
-  const { tokenHash } = (await res.json()) as { tokenHash: string };
-  const { error } = await supabase.auth.verifyOtp({
-    type: "magiclink",
-    token_hash: tokenHash,
-  });
-  if (error) throw new Error(error.message);
 }

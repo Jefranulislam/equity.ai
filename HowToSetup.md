@@ -4,7 +4,7 @@ Three install paths are described: **A) VPS (bare metal/systemd)**, **B) Docker 
 
 Estimated time: 20–40 minutes. You will create accounts on **[supabase.com](https://supabase.com)** (free tier works) and either run locally/VPS/Docker, or optionally deploy to Cloudflare.
 
-**Runtime requirement:** [Bun](https://bun.sh) ≥ 1.2 (or Node.js ≥ 20 with npm — package-lock.json is provided).
+**Runtime requirement:** [Bun](https://bun.sh) ≥ 1.2 (lockfile: `bun.lock`). Node.js ≥ 20 with npm also works: run `npm install`, which creates its own lockfile.
 
 ---
 
@@ -178,3 +178,37 @@ After edits, rebuild and restart (Target A/B) or `wrangler deploy` (Target C).
 - [ ] P&L & Balance Sheet show numbers from the seed or your test data
 - [ ] Team invite requires owner/admin; a `viewer` role cannot mutate data (RLS rejects)
 - [ ] CSV exports download from Reports and Compliance
+
+
+---
+
+## Demo account (one-tap login)
+
+The public demo account is only active when the build receives the two `VITE_DEMO_*` variables. Without them, the one-tap button is hidden and no demo credential is included in the browser bundle.
+
+| Item | Value |
+|---|---|
+| Email | `demo@xmanager.app` |
+| Password | `demo1234` |
+| Workspace | "Acme Trading Co." (seeded, isolated from real tenants) |
+
+**One-time setup on the hosted Supabase project (run once, then turn off):**
+
+1. Set `DEMO_ENABLED=true`, `DEMO_EMAIL`, `DEMO_PASSWORD` (same value as `VITE_DEMO_PASSWORD`) and a long random `DEMO_SETUP_TOKEN` on the server, then run the app once.
+2. Call the setup route once: `POST /api/demo` with the header `x-demo-setup-token: <DEMO_SETUP_TOKEN>`. It creates the demo user and seeds the workspace. Without the token it returns 401; with `DEMO_ENABLED` unset it returns 404.
+3. Set `VITE_DEMO_EMAIL` and `VITE_DEMO_PASSWORD` in the frontend build environment for the demo deployment, then rebuild.
+4. For production, leave all `DEMO_*` and `VITE_DEMO_*` variables unset, or delete the demo user in Supabase.
+
+## Database setup order
+
+Use **one** of these paths on a fresh Supabase/Postgres database, then run the seed:
+
+1. `database/schema.sql` (full install, includes the tenant and foreign-key indexes), or
+2. the files in `supabase/migrations/` in filename order.
+
+Then, optionally, `database/seed.sql` (replace `REVIEWER_EMAIL@example.com` with your own account email first).
+
+## Dependency audit
+
+`bun audit` on the locked dependencies reports **no vulnerabilities**. Transitive fixes are pinned in `package.json` `overrides` (`minimatch`, `esbuild`, `katex`, `mermaid`, plus the earlier list).
+

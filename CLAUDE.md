@@ -9,7 +9,7 @@ AI-powered ERP & accounting SaaS for SMBs. Multi-tenant (per-workspace isolation
 ## Tech stack & commands
 
 - **Stack:** React 19 + TypeScript, TanStack Start (SSR + server functions + server routes), TanStack Router & Query, Tailwind CSS v4, shadcn/Radix UI, Supabase (Postgres + auth + storage), Vercel AI SDK on an OpenAI-compatible gateway. Build target: Cloudflare Workers (`@cloudflare/vite-plugin`, `nodejs_compat`).
-- **Package manager:** Bun (`bun.lock`) — npm (`package-lock.json`) also pinned.
+- **Package manager:** Bun only (`bun.lock`). Docker installs with `bun install --frozen-lockfile`.
 - **Dev:** `bun run dev` — **Build:** `bun run build` — **Lint:** `bun run lint` — **Format:** `bun run format`.
 - **Local prod-style run:** `bun x wrangler dev --port 8787` after `bun run build`.
 

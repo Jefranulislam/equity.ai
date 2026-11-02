@@ -55,7 +55,8 @@ New-Item -ItemType Directory -Path $project | Out-Null
 # robocopy /XD dirs: never ship build artifacts, deps, VCS or secrets
 robocopy $root $project /E `
   /XD node_modules dist .tanstack .wrangler .git .github .idea .vscode .package-staging database docs `
-  /XF .env .env.local .dev.vars *.log pack-zip.ps1 Equity.AI.Submission.zip `
+  /XF .env .env.local .dev.vars *.log audit-prod*.json 51daedb83305ec8bc54176f109051c59.png image.png pack-zip.ps1 Equity.AI.Submission.zip `
+  README.md CLAUDE.md HowToSetup.md CHANGELOG.md LICENSE-NOTE.md docker-compose.yml `
   /NFL /NDL /NJH /NJS
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed on Project (exit $LASTEXITCODE)" }
 

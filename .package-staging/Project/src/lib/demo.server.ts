@@ -8,8 +8,14 @@
 // (auto-posting, tax recompute, numbering, low-stock) fires exactly as in prod.
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo-credentials";
 
+// Server-only: the demo password is read from the environment, never from source.
+const DEMO_EMAIL = process.env.DEMO_EMAIL ?? "demo@xmanager.app";
+function demoPassword(): string {
+  const pw = process.env.DEMO_PASSWORD;
+  if (!pw) throw new Error("DEMO_PASSWORD is not set on the server");
+  return pw;
+}
 const DEMO_ORG_NAME = "Acme Trading Co.";
 
 /* ---------------------------------------------------------------- facade ——— */
@@ -73,6 +79,7 @@ const r2 = (v: number) => Math.round(v * 100) / 100;
 /* ------------------------------------------------------- ensure demo user —— */
 
 async function ensureDemoUser(): Promise<string> {
+  const DEMO_PASSWORD = demoPassword();
   const { data: created } = await sb.auth.admin.createUser({
     email: DEMO_EMAIL,
     password: DEMO_PASSWORD,
@@ -714,17 +721,10 @@ async function ensureDemoWorkspace(userId: string): Promise<DemoWorkspaceResult>
 /* ---------------------------------------------------------------- public ——— */
 
 /**
- * Ensures the demo account + seeded workspace exist, then returns a one-time
- * magic-link token hash the client redeems with `verifyOtp({ type: "magiclink" })`.
+ * Ensures the demo account (with its known password) and seeded workspace exist.
+ * Only called from POST /api/demo when DEMO_ENABLED=true.
  */
-export async function ensureDemoSession(): Promise<{ tokenHash: string }> {
+export async function ensureDemoAccount(): Promise<void> {
   const userId = await ensureDemoUser();
   await ensureDemoWorkspace(userId);
-  const { data, error } = await sb.auth.admin.generateLink({
-    type: "magiclink",
-    email: DEMO_EMAIL,
-  });
-  if (error || !data?.properties?.hashed_token)
-    throw new Error(`craft demo session: ${String(error?.message ?? "no token")}`);
-  return { tokenHash: String(data.properties.hashed_token) };
 }
