@@ -35,7 +35,7 @@ const COUNTRIES: { code: string; name: string; currency: string; regime: string 
 
 const CURRENCIES = ["USD", "EUR", "GBP", "INR", "AED", "SGD", "AUD", "CAD", "JPY", "BRL", "CHF", "CNY", "MXN", "ZAR"];
 
-interface CreatedOrg { id: string; name: string | null; currency: string | null | undefined; country: string | null | undefined; }
+interface CreatedOrg { id: string; name: string; currency: string; country: string; }
 
 type NewOrgInput = { name: string; country: string; currency: string; tax_regime?: string };
 
@@ -54,7 +54,9 @@ async function createWithClient(data: NewOrgInput): Promise<CreatedOrg> {
     p_currency: data.currency,
     p_tax_regime: data.tax_regime ?? null,
   });
-  if (!rpc.error && rpc.data) return rpc.data as CreatedOrg;
+  // RETURNS TABLE → PostgREST returns an array with the single new workspace.
+  const created = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+  if (!rpc.error && created) return created as CreatedOrg;
 
   // Direct RLS path for databases where the RPC has not been applied yet.
   const { data: { user }, error: userErr } = await supabase.auth.getUser();

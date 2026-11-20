@@ -46,7 +46,7 @@ const NAV = [
   { label: "Settings", to: "/settings", icon: Settings },
 ] as const;
 
-export function AppSidebar() {
+export function AppSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { signOut, user } = useAuth();
   const { currentOrg } = useOrg();
@@ -57,8 +57,8 @@ export function AppSidebar() {
     navigate({ to: "/login" });
   };
 
-  return (
-    <aside className="w-60 shrink-0 border-r border-border bg-sidebar flex flex-col sticky top-0 h-screen">
+  const content = (
+    <>
       <div className="p-6 pb-4">
         <div className="flex items-center gap-2">
           <div className="size-6 bg-accent rounded flex items-center justify-center">
@@ -75,6 +75,7 @@ export function AppSidebar() {
             <Link
               key={item.to}
               to={item.to}
+              onClick={onClose}
               className={`flex items-center gap-2.5 px-3 py-1.5 rounded-md font-medium transition-colors ${
                 active
                   ? "bg-accent/5 text-accent"
@@ -91,6 +92,7 @@ export function AppSidebar() {
         <div className="pt-4 mt-4 border-t border-border space-y-1">
           <Link
             to="/ai-agent"
+            onClick={onClose}
             className="group relative overflow-hidden flex items-center gap-2.5 px-3 py-2 bg-accent text-accent-foreground rounded-md font-medium"
           >
             <Sparkles className="size-3.5" />
@@ -120,6 +122,29 @@ export function AppSidebar() {
           </button>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop rail */}
+      <aside className="hidden lg:flex w-60 shrink-0 border-r border-border bg-sidebar flex-col sticky top-0 h-screen">
+        {content}
+      </aside>
+
+      {/* Mobile / tablet drawer */}
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-foreground/30 lg:hidden"
+            onClick={onClose}
+            aria-hidden="true"
+          />
+          <aside className="fixed inset-y-0 left-0 z-50 w-60 max-w-[85vw] border-r border-border bg-sidebar flex flex-col lg:hidden shadow-2xl">
+            {content}
+          </aside>
+        </>
+      )}
+    </>
   );
 }

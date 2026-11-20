@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { money, fmtDate } from "@/lib/format";
+import { joinById } from "@/lib/relations";
 
 export const Route = createFileRoute("/_authenticated/bill-payments")({
   head: () => ({ meta: [{ title: "Vendor Payments — Equity.AI" }] }),
@@ -38,13 +39,16 @@ function Page() {
 
   const load = async () => {
     if (!currentOrg) return;
+    // Client-side join: works on databases created before the FK migration (see lib/relations.ts).
     const [p, v, b] = await Promise.all([
-      supabase.from("bill_payments").select("id,payment_date,amount,currency,method,reference,vendor:vendors(name)").eq("organization_id", currentOrg.id).order("payment_date", { ascending: false }),
+      supabase.from("bill_payments").select("id,payment_date,amount,currency,method,reference,vendor_id").eq("organization_id", currentOrg.id).order("payment_date", { ascending: false }),
       supabase.from("vendors").select("id,name").eq("organization_id", currentOrg.id).order("name"),
       supabase.from("bills").select("id,bill_number,total,amount_paid,vendor_id").eq("organization_id", currentOrg.id).neq("status", "paid").neq("status", "void"),
     ]);
-    setRows((p.data ?? []) as unknown as BP[]);
-    setVendors((v.data ?? []) as { id: string; name: string }[]);
+    if (p.error) toast.error(`Failed to load bill payments: ${p.error.message}`);
+    const vendorList = (v.data ?? []) as { id: string; name: string }[];
+    setRows(joinById((p.data ?? []) as unknown as (Omit<BP, "vendor"> & { vendor_id: string | null })[], "vendor_id", vendorList, "vendor", (x) => ({ name: x.name })));
+    setVendors(vendorList);
     setBills((b.data ?? []) as Bill[]);
   };
   useEffect(() => { load(); }, [currentOrg?.id]);
@@ -74,7 +78,7 @@ function Page() {
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Vendor Payments</h1>
@@ -129,7 +133,7 @@ function Page() {
         </Dialog>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Vendor</TableHead><TableHead>Method</TableHead><TableHead>Reference</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
           <TableBody>

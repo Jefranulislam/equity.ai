@@ -13,12 +13,21 @@
 # ==============================================================================
 
 param(
-  [string]$OutZip = ".\Equity.AI.Submission.zip"
+  [string]$OutZip = ".\Equity.AI.Submission.V1.0.6.zip"
 )
 
 $ErrorActionPreference = 'Stop'
 $root    = $PSScriptRoot
 $staging = Join-Path $root '.package-staging'
+
+# --- pre-flight: never package a tree that fails its own checks ----------------
+Push-Location $root
+try {
+  bun test
+  if ($LASTEXITCODE -ne 0) { throw "bun test failed - fix tests before packaging" }
+  bun run db:schema:check
+  if ($LASTEXITCODE -ne 0) { throw "database/schema.sql is stale - run: bun run db:schema" }
+} finally { Pop-Location }
 
 if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 if (Test-Path $OutZip)  { Remove-Item $OutZip  -Force }
@@ -54,8 +63,8 @@ New-Item -ItemType Directory -Path $project | Out-Null
 
 # robocopy /XD dirs: never ship build artifacts, deps, VCS or secrets
 robocopy $root $project /E `
-  /XD node_modules dist .tanstack .wrangler .git .github .idea .vscode .package-staging database docs `
-  /XF .env .env.local .dev.vars *.log audit-prod*.json 51daedb83305ec8bc54176f109051c59.png image.png pack-zip.ps1 Equity.AI.Submission.zip `
+  /XD node_modules dist .tanstack .wrangler .git .github .idea .vscode .claude .package-staging database docs screenshots `
+  /XF .env .env.local .dev.vars *.log audit-prod*.json 51daedb83305ec8bc54176f109051c59.png image.png pack-zip.ps1 *.zip settings.local.json `
   README.md CLAUDE.md HowToSetup.md CHANGELOG.md LICENSE-NOTE.md docker-compose.yml `
   /NFL /NDL /NJH /NJS
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed on Project (exit $LASTEXITCODE)" }
@@ -68,11 +77,18 @@ $must = @(
   'README.md','HowToSetup.md','CLAUDE.md','CHANGELOG.md','LICENSE-NOTE.md','.env.example',
   'docker-compose.yml','database\schema.sql','database\seed.sql',
   'Project\package.json','Project\bun.lock',
-  'Project\src','Project\wrangler.jsonc','Project\vite.config.ts'
+  'Project\src','Project\wrangler.jsonc','Project\vite.config.ts',
+  'Project\vercel.json','Project\tests','Project\scripts\build-schema.mjs',
+  'docs\screenshots\dashboard.png'
 )
 foreach ($m in $must) {
   if (-not (Test-Path (Join-Path $staging $m))) { throw "Staging is missing required path: $m" }
 }
+
+# no local tooling settings or scratch images
+$junk = Get-ChildItem $staging -Recurse -Force |
+  Where-Object { $_.Name -eq '.claude' -or $_.Name -eq 'settings.local.json' -or $_.FullName -like '*\Project\screenshots*' }
+if ($junk) { throw ($junk.FullName | ForEach-Object { "LOCAL FILE PRESENT: $_" } | Out-String) }
 
 # no secrets anywhere in the staging tree
 $envFiles = Get-ChildItem $staging -Recurse -Force -File |

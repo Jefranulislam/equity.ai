@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { ArrowLeft, Plus, Trash2, CircleDollarSign, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { money, fmtDate } from "@/lib/format";
+import { statusTone } from "@/lib/status-styles";
 
 export const Route = createFileRoute("/_authenticated/invoices/$invoiceId")({
   component: InvoiceDetailPage,
@@ -31,14 +32,6 @@ interface PaymentLink {
   payments: { id: string; payment_date: string; method: string; reference: string | null; amount: Num } | null;
 }
 
-const STATUS_COLOR: Record<Invoice["status"], string> = {
-  draft: "bg-muted text-muted-foreground",
-  sent: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
-  partial: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  paid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  void: "bg-destructive/10 text-destructive",
-};
-
 function InvoiceDetailPage() {
   const { invoiceId } = Route.useParams();
   const { currentOrg } = useOrg();
@@ -51,11 +44,14 @@ function InvoiceDetailPage() {
   const [payOpen, setPayOpen] = useState(false);
 
   const load = async () => {
+    if (!currentOrg) return;
     setLoading(true);
+    const orgId = currentOrg.id;
+    // Tenant filter on every query (defense in depth on top of RLS).
     const [{ data: invData, error }, { data: linesData }, { data: paysData }] = await Promise.all([
-      supabase.from("invoices").select("*,customers(id,billing_name,email,billing_address)").eq("id", invoiceId).single(),
-      supabase.from("invoice_lines").select("*").eq("invoice_id", invoiceId).order("position"),
-      supabase.from("payment_invoice_links").select("id,applied_amount,payments(id,payment_date,method,reference,amount)").eq("invoice_id", invoiceId),
+      supabase.from("invoices").select("*,customers(id,billing_name,email,billing_address)").eq("id", invoiceId).eq("organization_id", orgId).single(),
+      supabase.from("invoice_lines").select("*").eq("invoice_id", invoiceId).eq("organization_id", orgId).order("position"),
+      supabase.from("payment_invoice_links").select("id,applied_amount,payments(id,payment_date,method,reference,amount)").eq("invoice_id", invoiceId).eq("organization_id", orgId),
     ]);
     if (error) toast.error(error.message);
     setInv(invData as unknown as Invoice);
@@ -64,28 +60,28 @@ function InvoiceDetailPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [invoiceId]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [invoiceId, currentOrg?.id]);
 
   const remove = async () => {
     if (!confirm("Delete this invoice?")) return;
-    const { error } = await supabase.from("invoices").delete().eq("id", invoiceId);
+    const { error } = await supabase.from("invoices").delete().eq("id", invoiceId).eq("organization_id", currentOrg!.id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
     navigate({ to: "/invoices" });
   };
 
   const setStatus = async (status: Invoice["status"]) => {
-    const { error } = await supabase.from("invoices").update({ status }).eq("id", invoiceId);
+    const { error } = await supabase.from("invoices").update({ status }).eq("id", invoiceId).eq("organization_id", currentOrg!.id);
     if (error) return toast.error(error.message);
     load();
   };
 
-  if (loading || !inv) return <div className="p-8 text-muted-foreground">Loading…</div>;
+  if (loading || !inv) return <div className="p-4 sm:p-6 lg:p-8 text-muted-foreground">Loading…</div>;
 
   const due = Number(inv.total) - Number(inv.amount_paid);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto w-full animate-reveal print-area">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full animate-reveal print-area">
       <Link to="/invoices" className="no-print inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="size-3.5" /> Back to invoices
       </Link>
@@ -123,7 +119,7 @@ function InvoiceDetailPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl font-bold tracking-tight font-mono">{inv.invoice_number}</h1>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLOR[inv.status]}`}>{inv.status}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusTone(inv.status)}`}>{inv.status}</span>
           </div>
           <p className="text-muted-foreground">
             {inv.customers?.billing_name ?? "No customer"} · Issued {fmtDate(inv.issue_date)} · Due {fmtDate(inv.due_date)}

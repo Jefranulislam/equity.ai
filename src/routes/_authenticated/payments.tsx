@@ -76,14 +76,14 @@ function Payments() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this payment? This will reverse any invoice applications.")) return;
-    const { error } = await supabase.from("payments").delete().eq("id", id);
+    const { error } = await supabase.from("payments").delete().eq("id", id).eq("organization_id", currentOrg!.id);
     if (error) return toast.error(error.message);
     toast.success("Payment deleted");
     load();
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
       <div className="flex items-end justify-between mb-8 animate-reveal">
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-1">Payments</h1>

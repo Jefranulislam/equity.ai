@@ -10,7 +10,8 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Server-only: the demo password is read from the environment, never from source.
-const DEMO_EMAIL = process.env.DEMO_EMAIL ?? "demo@xmanager.app";
+// The email is not a secret; the password has NO fallback (see demoPassword()).
+const DEMO_EMAIL = process.env.DEMO_EMAIL ?? "demo@equity.ai";
 function demoPassword(): string {
   const pw = process.env.DEMO_PASSWORD;
   if (!pw) throw new Error("DEMO_PASSWORD is not set on the server");

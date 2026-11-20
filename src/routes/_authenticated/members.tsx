@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { joinById } from "@/lib/relations";
 import { useOrg } from "@/contexts/org-context";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
@@ -35,10 +36,16 @@ function Page() {
 
   const load = async () => {
     if (!currentOrg) return;
-    const { data } = await supabase.from("organization_members")
-      .select("id,user_id,role,created_at,profile:profiles(full_name)")
+    // organization_members has no FK to profiles, so join in the client.
+    const { data, error } = await supabase.from("organization_members")
+      .select("id,user_id,role,created_at")
       .eq("organization_id", currentOrg.id);
-    setMembers((data ?? []) as unknown as Member[]);
+    if (error) { toast.error(`Failed to load members: ${error.message}`); return; }
+    const rows = (data ?? []) as Omit<Member, "profile">[];
+    const { data: profiles } = rows.length
+      ? await supabase.from("profiles").select("id,full_name").in("id", rows.map((m) => m.user_id))
+      : { data: [] };
+    setMembers(joinById(rows, "user_id", (profiles ?? []) as { id: string; full_name: string | null }[], "profile", (p) => ({ full_name: p.full_name })));
   };
   useEffect(() => { load(); }, [currentOrg?.id]);
 
@@ -74,19 +81,19 @@ function Page() {
   };
 
   const updateRole = async (id: string, r: Role) => {
-    const { error } = await supabase.from("organization_members").update({ role: r }).eq("id", id);
+    const { error } = await supabase.from("organization_members").update({ role: r }).eq("id", id).eq("organization_id", currentOrg!.id);
     if (error) return toast.error(error.message);
     toast.success("Role updated"); load();
   };
   const remove = async (id: string) => {
     if (!confirm("Remove this member?")) return;
-    const { error } = await supabase.from("organization_members").delete().eq("id", id);
+    const { error } = await supabase.from("organization_members").delete().eq("id", id).eq("organization_id", currentOrg!.id);
     if (error) return toast.error(error.message);
     toast.success("Removed"); load();
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Team & Roles</h1>
@@ -119,7 +126,7 @@ function Page() {
         )}
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Role</TableHead><TableHead>Joined</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>

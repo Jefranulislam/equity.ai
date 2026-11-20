@@ -3,21 +3,16 @@ import { TrendingUp, AlertCircle, Sparkles, ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useOrg } from "@/contexts/org-context";
 import { supabase } from "@/integrations/supabase/client";
-import { money, fmtDate } from "@/lib/format";
+import { money, fmtDate, todayISO } from "@/lib/format";
+import { statusTone } from "@/lib/status-styles";
+import { computeDashboardKpis, type DashboardKpis } from "@/lib/kpis";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Equity.AI" }] }),
   component: Dashboard,
 });
 
-interface Kpis {
-  revenue: number;
-  receivables: number;
-  payables: number;
-  expenses: number;
-  overdueCount: number;
-  monthly: number[];
-}
+type Kpis = DashboardKpis;
 
 interface RecentInvoice {
   id: string;
@@ -26,14 +21,6 @@ interface RecentInvoice {
   status: string;
   customer: { billing_name: string } | null;
 }
-
-const STATUS_TONE: Record<string, string> = {
-  paid: "bg-success/10 text-success",
-  partial: "bg-warning/10 text-warning",
-  sent: "bg-accent/10 text-accent",
-  draft: "bg-muted text-muted-foreground",
-  void: "bg-destructive/10 text-destructive",
-};
 
 function Dashboard() {
   const { currentOrg } = useOrg();
@@ -76,33 +63,7 @@ function Dashboard() {
 
       if (!alive) return;
 
-      const monthly = Array(12).fill(0);
-      let revenue = 0;
-      let receivables = 0;
-      let overdueCount = 0;
-      const today = new Date().toISOString().slice(0, 10);
-      for (const r of invAll.data ?? []) {
-        if (r.status === "void") continue;
-        const total = Number(r.total ?? 0);
-        const paid = Number(r.amount_paid ?? 0);
-        revenue += paid;
-        const outstanding = Math.max(total - paid, 0);
-        receivables += outstanding;
-        if (outstanding > 0 && r.due_date && r.due_date < today) overdueCount++;
-        const m = new Date(r.issue_date).getMonth();
-        monthly[m] += total;
-      }
-
-      const payables = (billsRes.data ?? []).reduce(
-        (sum, b) => sum + Number(b.total ?? 0),
-        0,
-      );
-      const expenses = (expRes.data ?? []).reduce(
-        (sum, e) => sum + Number(e.amount ?? 0),
-        0,
-      );
-
-      setKpis({ revenue, receivables, payables, expenses, overdueCount, monthly });
+      setKpis(computeDashboardKpis(invAll.data ?? [], billsRes.data ?? [], expRes.data ?? [], todayISO()));
       setInvoices((invRecent.data ?? []) as unknown as RecentInvoice[]);
       setLoading(false);
     })();
@@ -113,7 +74,7 @@ function Dashboard() {
   const currentMonth = new Date().getMonth();
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
       <div className="flex items-end justify-between mb-8 animate-reveal">
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-1">Overview</h1>
@@ -204,7 +165,7 @@ function Dashboard() {
                       </td>
                       <td className="px-4 py-3 font-medium">{row.customer?.billing_name ?? "—"}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${STATUS_TONE[row.status] ?? "bg-muted text-muted-foreground"}`}>{row.status}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusTone(row.status)}`}>{row.status}</span>
                       </td>
                       <td className="px-4 py-3 font-mono text-right">{money(row.total, currency)}</td>
                     </tr>

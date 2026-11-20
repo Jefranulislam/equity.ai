@@ -23,23 +23,35 @@ The differentiator is **Freya**, a built-in AI finance analyst grounded in your 
 | **Freya AI analyst (beta)** | Natural-language chat grounded in live data via inspectable tool calls (`financial_summary`, `recent_invoices`, `recent_bills`, `inventory_snapshot`, `tax_summary`) |
 | **Teams & multi-workspace** | Roles owner/admin/accountant/sales/inventory/viewer enforced by database RLS; workspace switcher; every signup gets its own isolated workspace |
 | **Productivity** | ⌘K command palette with live search across invoices/customers/vendors/products; dashboard KPIs; multi-currency (13 currencies) with FX rates |
-| **Free document tools** | 10 no-login invoice/document generators (GST & VAT ready, 8 templates, PDF download) — lead-generation suite |
+| **Responsive UI** | Desktop sidebar, slide-out drawer on tablet/phone, adaptive search, contextual top-bar actions, horizontally scrollable tables |
+
+## Live demo
+
+| | |
+|---|---|
+| URL | <https://equity-ai-wine.vercel.app> |
+| Email | `demo@equity.ai` |
+| Password | `demo1234` |
+| Workspace | "Acme Trading Co.", 10 months of seeded invoices, bills, expenses, quotes, POs, credit notes and journals |
+
+Click **Try the demo** on the landing page for one-tap sign-in. The demo login is intentionally public and only reaches the isolated sample workspace.
 
 ## Screenshots
-
-Add PNG files to `docs/screenshots/` (see names below). Also live: use the working demo URL.
 
 | File | Shows |
 |---|---|
 | `docs/screenshots/dashboard.png` | Dashboard KPIs + 12-month invoice chart |
-| `docs/screenshots/invoice.png` | Invoice editor + printable PDF view |
-| `docs/screenshots/reporting.png` | P&L / Balance Sheet / Cash Flow |
+| `docs/screenshots/accounting.png` | Chart of accounts, journal, trial balance, P&L |
+| `docs/screenshots/compliance.png` | Tax compliance workbench and registers |
 | `docs/screenshots/ai-agent.png` | Freya AI chat with visible tool-call traces |
+| `docs/screenshots/settings.png` | Workspace, team and AI settings |
+| `docs/screenshots/onboarding.png` | Workspace onboarding with country presets |
 
 ## Tech stack
 
 - **Frontend:** React 19 + TypeScript, TanStack Start (SSR), TanStack Router + Query, Tailwind CSS v4, shadcn/Radix UI
-- **Backend:** TanStack Start server functions + server routes, deployed to Cloudflare Workers (edge)
+- **Backend:** TanStack Start server functions + server routes (Cloudflare Workers build), or a static SPA build backed by Supabase RPCs (Vercel/Hostinger; runs the public demo)
+- **Tooling:** Bun 1.3.14 (only supported package manager, `bun.lock` committed), `bun test` unit tests, `bun audit` clean
 - **Database:** Supabase (PostgreSQL) with row-level security, triggers, and generated document numbering
 - **Auth:** Supabase Auth (email/password) with automatic workspace provisioning on signup
 - **AI:** Vercel AI SDK with any OpenAI-compatible provider (default: OpenRouter, bring-your-own key per user)
@@ -49,6 +61,7 @@ Add PNG files to `docs/screenshots/` (see names below). Also live: use the worki
 - Every table is multi-tenant scoped by `organization_id` and protected by **Postgres row-level security** (`is_org_member()` / `has_org_role()` helpers — SECURITY DEFINER, revoked from `anon`).
 - All app reads/writes use the signed-in user's JWT, so the database — not the UI — is what enforces roles and cross-tenant isolation.
 - The only elevated (service-role) operations run server-side: email lookup for team invitations, workspace provisioning on signup, and the AI chat route (which validates the JWT *and* workspace membership before querying, and only touches rows explicitly scoped to the member's workspace).
+- Role permissions (who can update, delete or invite) live in RLS policies. The full role matrix is in `HowToSetup.md` under "Security model".
 - See `docs/API.md` for the full endpoint inventory and authorization notes.
 
 ## Repository layout
@@ -56,8 +69,11 @@ Add PNG files to `docs/screenshots/` (see names below). Also live: use the worki
 ```
 ├── src/                  Application source (routes, components, lib, integrations)
 ├── supabase/migrations/  Ordered SQL migrations (source of truth for the schema)
-├── database/             schema.sql (install from scratch) + seed.sql (demo data)
+├── database/             schema.sql (generated from migrations: bun run db:schema) + seed.sql (demo data)
+├── tests/                Unit tests for pure business helpers (bun test)
+├── scripts/              Build helpers (worker build, static publish, schema generator)
 ├── docs/                 API reference, screenshots
+├── vercel.json           Static SPA deploy (frozen Bun install + deep-link rewrite)
 ├── HowToSetup.md         Step-by-step install (Supabase + VPS/Docker/Cloudflare)
 ├── docker-compose.yml    Container install path (with Dockerfile + .dockerignore)
 ├── CLAUDE.md             Guide for AI coding tools

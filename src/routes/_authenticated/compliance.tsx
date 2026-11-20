@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { money, fmtDate } from "@/lib/format";
+import { money, fmtDate, firstOfMonthISO, todayISO } from "@/lib/format";
 import { ShieldCheck, FileSpreadsheet, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/compliance")({
@@ -19,13 +19,11 @@ export const Route = createFileRoute("/_authenticated/compliance")({
 interface InvRow { id: string; invoice_number: string; issue_date: string; tax_total: number; subtotal: number; total: number; status: string; customer: { billing_name: string; tax_id: string | null } | null; }
 interface BillRow { id: string; bill_number: string; issue_date: string; tax_total: number; subtotal: number; total: number; status: string; vendor: { name: string; tax_id: string | null } | null; }
 
-function firstOfMonth() { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10); }
-function todayStr() { return new Date().toISOString().slice(0,10); }
 
 function CompliancePage() {
   const { currentOrg } = useOrg();
-  const [from, setFrom] = useState(firstOfMonth());
-  const [to, setTo] = useState(todayStr());
+  const [from, setFrom] = useState(firstOfMonthISO());
+  const [to, setTo] = useState(todayISO());
   const [invoices, setInvoices] = useState<InvRow[]>([]);
   const [bills, setBills] = useState<BillRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +66,7 @@ function CompliancePage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
       <div className="flex items-end justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-1 flex items-center gap-2"><ShieldCheck className="size-6 text-accent" /> Compliance</h1>

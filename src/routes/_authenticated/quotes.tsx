@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, ArrowRightCircle } from "lucide-react";
 import { toast } from "sonner";
 import { money, fmtDate } from "@/lib/format";
+import { joinById } from "@/lib/relations";
 
 export const Route = createFileRoute("/_authenticated/quotes")({
   head: () => ({ meta: [{ title: "Quotes — Equity.AI" }] }),
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/quotes")({
 });
 
 interface Q { id: string; quote_number: string; issue_date: string; expiry_date: string | null; status: string; total: number; currency: string; converted_invoice_id: string | null; customer: { billing_name: string } | null; }
+interface QRow { id: string; quote_number: string; issue_date: string; expiry_date: string | null; status: string; total: number; currency: string; converted_invoice_id: string | null; customer_id: string | null; }
 interface Line { description: string; quantity: string; unit_price: string; tax_rate: string; }
 const newLine = (): Line => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
 
@@ -26,6 +28,7 @@ function Page() {
   const { currentOrg } = useOrg();
   const { user } = useAuth();
   const [rows, setRows] = useState<Q[]>([]);
+  const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState<{ id: string; billing_name: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -37,13 +40,22 @@ function Page() {
 
   const load = async () => {
     if (!currentOrg) return;
+    setLoading(true);
+    const orgId = currentOrg.id;
+    // Client-side join: works on databases created before the FK migration (see lib/relations.ts).
     const [q, c] = await Promise.all([
-      supabase.from("quotes").select("id,quote_number,issue_date,expiry_date,status,total,currency,converted_invoice_id,customer:customers(billing_name)").eq("organization_id", currentOrg.id).order("created_at", { ascending: false }),
-      supabase.from("customers").select("id,billing_name").eq("organization_id", currentOrg.id).order("billing_name"),
+      supabase.from("quotes").select("id,quote_number,issue_date,expiry_date,status,total,currency,converted_invoice_id,customer_id").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("customers").select("id,billing_name").eq("organization_id", orgId).order("billing_name"),
     ]);
-    if (q.error) { toast.error(`Failed to load quotes: ${q.error.message}`); return; }
-    setRows((q.data ?? []) as unknown as Q[]);
-    setCustomers((c.data ?? []) as { id: string; billing_name: string }[]);
+    setLoading(false);
+    if (q.error) {
+      setRows([]);
+      toast.error(`Failed to load quotes: ${q.error.message}`);
+      return;
+    }
+    const customerList = (c.data ?? []) as { id: string; billing_name: string }[];
+    setRows(joinById((q.data ?? []) as unknown as QRow[], "customer_id", customerList, "customer", (c) => ({ billing_name: c.billing_name })));
+    setCustomers(customerList);
   };
   useEffect(() => { load(); }, [currentOrg?.id]);
 
@@ -96,7 +108,7 @@ function Page() {
 
   const convertToInvoice = async (qid: string) => {
     if (!currentOrg || !user) return;
-    const { data: q } = await supabase.from("quotes").select("*").eq("id", qid).single();
+    const { data: q } = await supabase.from("quotes").select("*").eq("id", qid).eq("organization_id", currentOrg!.id).single();
     const { data: ql } = await supabase.from("quote_lines").select("*").eq("quote_id", qid).order("position");
     if (!q || !ql) return toast.error("Quote not found");
     const { data: inv, error } = await supabase.from("invoices").insert({
@@ -108,12 +120,12 @@ function Page() {
       organization_id: currentOrg.id, invoice_id: inv.id, position: i,
       description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate,
     })));
-    await supabase.from("quotes").update({ status: "converted", converted_invoice_id: inv.id }).eq("id", qid);
+    await supabase.from("quotes").update({ status: "converted", converted_invoice_id: inv.id }).eq("id", qid).eq("organization_id", currentOrg!.id);
     toast.success(`Converted to ${inv.invoice_number}`); load();
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold">Quotes</h1><p className="text-muted-foreground text-sm">Estimates you send to customers</p></div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
@@ -152,11 +164,12 @@ function Page() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="border rounded-lg">
-        <Table>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table className="min-w-[680px]">
           <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Customer</TableHead><TableHead>Issue</TableHead><TableHead>Expiry</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>
-            {rows.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No quotes yet</TableCell></TableRow> :
+            {loading ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow> :
+              rows.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No quotes yet</TableCell></TableRow> :
               rows.map(r => (
                 <TableRow key={r.id}>
                   <TableCell className="font-mono">{r.quote_number}</TableCell>

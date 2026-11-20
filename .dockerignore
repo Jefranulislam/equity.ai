@@ -9,3 +9,7 @@ dist
 *.log
 docs/screenshots/*
 pack-zip.ps1
+.claude
+screenshots
+.package-staging
+*.zip

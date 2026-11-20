@@ -1,21 +1,26 @@
 -- =============================================================================
--- Equity.AI â€” Database schema (creates the database from scratch)
+-- Equity.AI - Database schema (creates the database from scratch)
 -- =============================================================================
--- Generated from supabase/migrations/*.sql in timestamp order.
+-- GENERATED FILE - do not edit by hand. Source: supabase/migrations/*.sql in
+-- filename order. Regenerate with:  bun run db:schema
 --
 -- HOW TO RUN:
 --   Supabase:      Open the SQL Editor and paste this whole file, then run it.
---   Plain psql:    psql "$DATABASE_URL" -f schema.sql
+--   Plain psql:    psql "$DATABASE_URL" -f database/schema.sql
 --                  (requires a Supabase-compatible Postgres: the schema
 --                  references auth.users, auth.uid() and the storage schema,
 --                  which exist in every Supabase project.)
 --
--- After this script, run seed.sql to create demo data.
+-- Use this file for a FRESH database only. To upgrade an existing database,
+-- apply just the migrations you have not run yet (see HowToSetup.md).
+-- After this script, optionally run database/seed.sql to create demo data.
 -- =============================================================================
 
--- ----------------------------------------------------------
--- Migration: 20260519180539_ b0b0ed7-01f5-4693-b0e7-e22414a449b7
--- ----------------------------------------------------------
+
+-- =============================================================================
+-- Migration: 20260519180539_cb0b0ed7-01f5-4693-b0e7-e22414a449b7.sql
+-- =============================================================================
+
 
 -- Enums
 CREATE TYPE public.org_role AS ENUM ('owner','admin','accountant','sales','viewer');
@@ -128,9 +133,10 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 
--- ----------------------------------------------------------
--- Migration: 20260519180646_ e866af2-358a-49cb-8aa9-5cf2228d9100
--- ----------------------------------------------------------
+-- =============================================================================
+-- Migration: 20260519180646_ce866af2-358a-49cb-8aa9-5cf2228d9100.sql
+-- =============================================================================
+
 
 CREATE OR REPLACE FUNCTION public.tg_set_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
@@ -143,9 +149,10 @@ GRANT EXECUTE ON FUNCTION public.is_org_member(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.has_org_role(UUID, UUID, public.org_role[]) TO authenticated;
 
 
--- ----------------------------------------------------------
--- Migration: 20260519181254_ 9fe55aa-9249-46cb-9c31-3be39f150519
--- ----------------------------------------------------------
+-- =============================================================================
+-- Migration: 20260519181254_f9fe55aa-9249-46cb-9c31-3be39f150519.sql
+-- =============================================================================
+
 
 CREATE TYPE public.invoice_status AS ENUM ('draft','sent','partial','paid','void');
 CREATE TYPE public.payment_method AS ENUM ('cash','bank_transfer','card','upi','cheque','other');
@@ -348,14 +355,17 @@ CREATE TRIGGER pil_recompute AFTER INSERT OR UPDATE OR DELETE ON public.payment_
   FOR EACH ROW EXECUTE FUNCTION public.tg_recompute_invoice_paid();
 
 
--- ----------------------------------------------------------
--- Migration: 20260519182437_ 20ae2a0-54b1-4fee-a811-00caa74fd6a2
--- ----------------------------------------------------------
+-- =============================================================================
+-- Migration: 20260519182437_520ae2a0-54b1-4fee-a811-00caa74fd6a2.sql
+-- =============================================================================
+
 ALTER TYPE public.org_role ADD VALUE IF NOT EXISTS 'inventory';
 
--- ----------------------------------------------------------
--- Migration: 20260519182525_ 399dbd7-20c3-449d-bc91-e9d725daa886
--- ----------------------------------------------------------
+
+-- =============================================================================
+-- Migration: 20260519182525_c399dbd7-20c3-449d-bc91-e9d725daa886.sql
+-- =============================================================================
+
 -- Movement type enum
 DO $$ BEGIN
   CREATE TYPE public.inv_movement_type AS ENUM ('receipt','issue','adjustment','transfer_in','transfer_out');
@@ -478,15 +488,19 @@ INSERT INTO public.inventory_locations (organization_id, name, is_default)
 SELECT o.id, 'Main', true FROM public.organizations o
 WHERE NOT EXISTS (SELECT 1 FROM public.inventory_locations l WHERE l.organization_id = o.id);
 
--- ----------------------------------------------------------
--- Migration: 20260519182553_ f720d70-b56b-4b6c-98ed-ac4525c3f090
--- ----------------------------------------------------------
+
+-- =============================================================================
+-- Migration: 20260519182553_7f720d70-b56b-4b6c-98ed-ac4525c3f090.sql
+-- =============================================================================
+
 REVOKE EXECUTE ON FUNCTION public.tg_create_default_location() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.tg_apply_inventory_movement() FROM PUBLIC, anon, authenticated;
 
--- ----------------------------------------------------------
--- Migration: 20260519183214_ d4c7fbd-b660-4e2d-9460-e69172aa626b
--- ----------------------------------------------------------
+
+-- =============================================================================
+-- Migration: 20260519183214_ed4c7fbd-b660-4e2d-9460-e69172aa626b.sql
+-- =============================================================================
+
 -- Bill status enum
 DO $$ BEGIN
   CREATE TYPE public.bill_status AS ENUM ('draft','open','partial','paid','void');
@@ -662,9 +676,11 @@ SELECT o.id, c.name FROM public.organizations o
 CROSS JOIN (VALUES ('Office'),('Travel'),('Software'),('Meals'),('Marketing'),('Utilities')) AS c(name)
 ON CONFLICT DO NOTHING;
 
--- ----------------------------------------------------------
--- Migration: 20260519184658_ 6ed90d2-c0d6-40df-a47a-32dc82962aff
--- ----------------------------------------------------------
+
+-- =============================================================================
+-- Migration: 20260519184658_16ed90d2-c0d6-40df-a47a-32dc82962aff.sql
+-- =============================================================================
+
 
 -- Account type enum
 DO $$ BEGIN
@@ -819,9 +835,10 @@ CROSS JOIN (VALUES
 ON CONFLICT DO NOTHING;
 
 
--- ----------------------------------------------------------
--- Migration: 20260519191901_ abdb3d1-70c6-468a-8c85-3940f2c12534
--- ----------------------------------------------------------
+-- =============================================================================
+-- Migration: 20260519191901_babdb3d1-70c6-468a-8c85-3940f2c12534.sql
+-- =============================================================================
+
 -- Allow org members to view each other's profiles (needed for team management UI)
 CREATE POLICY "profiles_select_org_peers"
 ON public.profiles
@@ -836,9 +853,11 @@ USING (
   )
 );
 
--- ----------------------------------------------------------
--- Migration: 20260519201059_ c70fc10-4cc0-49fe-9237-fa42c3713787
--- ----------------------------------------------------------
+
+-- =============================================================================
+-- Migration: 20260519201059_5c70fc10-4cc0-49fe-9237-fa42c3713787.sql
+-- =============================================================================
+
 
 -- ============ FX rates ============
 CREATE TABLE public.fx_rates (
@@ -1363,19 +1382,21 @@ CREATE TRIGGER trg_cn_upd BEFORE UPDATE ON public.credit_notes FOR EACH ROW EXEC
 CREATE TRIGGER trg_ri_upd BEFORE UPDATE ON public.recurring_invoices FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
 
 
--- ----------------------------------------------------------
--- Migration: 20260617000000_ ix_handle_new_user_ownership
--- ----------------------------------------------------------
+-- =============================================================================
+-- Migration: 20260617000000_fix_handle_new_user_ownership.sql
+-- =============================================================================
 
--- Ensure handle_new_user runs as postgres (superuser Ã¢â€ â€™ BYPASSRLS).
+
+-- Ensure handle_new_user runs as postgres (superuser → BYPASSRLS).
 -- Without this, SECURITY DEFINER on a non-superuser owner doesn't bypass RLS,
 -- causing auth.uid() = NULL inside the trigger to fail the org insert policy.
 ALTER FUNCTION public.handle_new_user() OWNER TO postgres;
 
 
--- ----------------------------------------------------------
--- Migration: 20260617000001_ rigger_profile_only
--- ----------------------------------------------------------
+-- =============================================================================
+-- Migration: 20260617000001_trigger_profile_only.sql
+-- =============================================================================
+
 
 -- Remove auto-org creation from signup trigger.
 -- Org setup is handled by the onboarding flow instead.
@@ -1397,14 +1418,13 @@ END $$;
 ALTER FUNCTION public.handle_new_user() OWNER TO postgres;
 
 
+-- =============================================================================
+-- Migration: 20260617000002_invite_member_rpc.sql
+-- =============================================================================
 
--- -----------------------------------------------------------------------------
--- invite_member RPC (from supabase/migrations/20260617000002_invite_member_rpc.sql)
 -- SECURITY DEFINER RPC for inviting team members without service-role privileges.
--- Lets the client call supabase.rpc('invite_member', ...) -- required on static
+-- Lets the client call supabase.rpc('invite_member', ...) — required on static
 -- deployments where TanStack server functions are not available.
--- -----------------------------------------------------------------------------
-
 CREATE OR REPLACE FUNCTION public.invite_member(p_email TEXT, p_role public.org_role, p_org UUID)
 RETURNS VOID
 LANGUAGE plpgsql
@@ -1439,13 +1459,16 @@ REVOKE ALL ON FUNCTION public.invite_member(TEXT, public.org_role, UUID) FROM an
 GRANT EXECUTE ON FUNCTION public.invite_member(TEXT, public.org_role, UUID) TO authenticated;
 
 
--- -----------------------------------------------------------------------------
--- create_workspace RPC (from supabase/migrations/20261025000000_create_workspace_rpc.sql)
--- SECURITY DEFINER RPC for workspace creation on static deployments where server
--- functions are unavailable. Bypasses RLS for the org + owner-membership inserts;
--- default location/account/expense-category seeding happens via AFTER INSERT triggers.
--- -----------------------------------------------------------------------------
+-- =============================================================================
+-- Migration: 20261025000000_create_workspace_rpc.sql
+-- =============================================================================
 
+-- SECURITY DEFINER RPC for workspace creation without server functions.
+-- Static deployments (Hostinger SPA / Vercel static) have no TanStack server
+-- functions, so onboarding must create the workspace through the database.
+-- The RPC runs as the table owner, bypassing RLS for the provisioning inserts
+-- (org row + owner membership). Default location and chart-of-accounts /
+-- expense-category seeding still happen via the existing AFTER INSERT triggers.
 CREATE OR REPLACE FUNCTION public.create_workspace(
   p_name TEXT, p_country TEXT, p_currency TEXT, p_tax_regime TEXT DEFAULT NULL
 )
@@ -1484,6 +1507,10 @@ ALTER FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) OWNER TO postgres
 REVOKE ALL ON FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) FROM anon;
 GRANT EXECUTE ON FUNCTION public.create_workspace(TEXT, TEXT, TEXT, TEXT) TO authenticated;
 
+
+-- =============================================================================
+-- Migration: 20261102000000_tenant_fk_indexes.sql
+-- =============================================================================
 
 -- Indexes on tenant (organization_id) and foreign-key columns. Idempotent.
 CREATE INDEX IF NOT EXISTS idx_organization_members_organization_id ON public.organization_members (organization_id);
@@ -1531,3 +1558,236 @@ CREATE INDEX IF NOT EXISTS idx_credit_notes_organization_id ON public.credit_not
 CREATE INDEX IF NOT EXISTS idx_credit_note_lines_organization_id ON public.credit_note_lines (organization_id);
 CREATE INDEX IF NOT EXISTS idx_recurring_invoices_organization_id ON public.recurring_invoices (organization_id);
 
+
+-- =============================================================================
+-- Migration: 20261105000000_add_missing_sales_document_fks.sql
+-- =============================================================================
+
+-- Root-cause fix for the broken embedded selects.
+--
+-- The sales/purchasing documents created in
+-- 20260519201059_5c70fc10-4cc0-49fe-9237-fa42c3713787.sql were declared
+-- WITHOUT foreign keys, so PostgREST cannot resolve relationships such as
+-- `quotes -> customers`. Requests like
+--
+--   GET /rest/v1/quotes?select=id,customer:customers(billing_name)
+--
+-- fail with PGRST200 "Could not find a relationship between 'quotes' and
+-- 'customers' in the schema cache", which surfaced as "Failed to load quotes"
+-- in the UI.
+--
+-- Add the missing constraints. Any orphan references are nulled first so the
+-- constraint can always be applied to an existing database.
+
+DO $$
+BEGIN
+  -- ================= quotes =================
+  UPDATE public.quotes q SET customer_id = NULL
+    WHERE customer_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.customers c WHERE c.id = q.customer_id);
+  UPDATE public.quotes q SET converted_invoice_id = NULL
+    WHERE converted_invoice_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = q.converted_invoice_id);
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.quotes'::regclass AND conname = 'quotes_customer_id_fkey'
+  ) THEN
+    ALTER TABLE public.quotes
+      ADD CONSTRAINT quotes_customer_id_fkey FOREIGN KEY (customer_id)
+      REFERENCES public.customers (id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.quotes'::regclass AND conname = 'quotes_converted_invoice_id_fkey'
+  ) THEN
+    ALTER TABLE public.quotes
+      ADD CONSTRAINT quotes_converted_invoice_id_fkey FOREIGN KEY (converted_invoice_id)
+      REFERENCES public.invoices (id) ON DELETE SET NULL;
+  END IF;
+
+  -- ================= credit_notes =================
+  UPDATE public.credit_notes cn SET customer_id = NULL
+    WHERE customer_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.customers c WHERE c.id = cn.customer_id);
+  UPDATE public.credit_notes cn SET invoice_id = NULL
+    WHERE invoice_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = cn.invoice_id);
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.credit_notes'::regclass AND conname = 'credit_notes_customer_id_fkey'
+  ) THEN
+    ALTER TABLE public.credit_notes
+      ADD CONSTRAINT credit_notes_customer_id_fkey FOREIGN KEY (customer_id)
+      REFERENCES public.customers (id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.credit_notes'::regclass AND conname = 'credit_notes_invoice_id_fkey'
+  ) THEN
+    ALTER TABLE public.credit_notes
+      ADD CONSTRAINT credit_notes_invoice_id_fkey FOREIGN KEY (invoice_id)
+      REFERENCES public.invoices (id) ON DELETE SET NULL;
+  END IF;
+
+  -- ================= purchase_orders =================
+  UPDATE public.purchase_orders po SET vendor_id = NULL
+    WHERE vendor_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = po.vendor_id);
+  UPDATE public.purchase_orders po SET converted_bill_id = NULL
+    WHERE converted_bill_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.bills b WHERE b.id = po.converted_bill_id);
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.purchase_orders'::regclass AND conname = 'purchase_orders_vendor_id_fkey'
+  ) THEN
+    ALTER TABLE public.purchase_orders
+      ADD CONSTRAINT purchase_orders_vendor_id_fkey FOREIGN KEY (vendor_id)
+      REFERENCES public.vendors (id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.purchase_orders'::regclass AND conname = 'purchase_orders_converted_bill_id_fkey'
+  ) THEN
+    ALTER TABLE public.purchase_orders
+      ADD CONSTRAINT purchase_orders_converted_bill_id_fkey FOREIGN KEY (converted_bill_id)
+      REFERENCES public.bills (id) ON DELETE SET NULL;
+  END IF;
+
+  -- ================= bill_payments =================
+  UPDATE public.bill_payments bp SET vendor_id = NULL
+    WHERE vendor_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = bp.vendor_id);
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.bill_payments'::regclass AND conname = 'bill_payments_vendor_id_fkey'
+  ) THEN
+    ALTER TABLE public.bill_payments
+      ADD CONSTRAINT bill_payments_vendor_id_fkey FOREIGN KEY (vendor_id)
+      REFERENCES public.vendors (id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+
+-- =============================================================================
+-- Migration: 20261120000000_harden_member_self_insert.sql
+-- =============================================================================
+
+-- Security fix: close a privilege-escalation path on organization_members.
+--
+-- The original policy "members_insert_admins_or_self" allowed
+--     user_id = auth.uid() OR has_org_role(... owner/admin)
+-- so ANY signed-in user could insert a membership row for THEMSELVES into ANY
+-- workspace (with any role, including 'owner') if they knew its UUID.
+--
+-- New rule:
+--   * owners/admins of the workspace may add members (invite flow), or
+--   * a user may add themselves only to a workspace they created
+--     (organizations.created_by = auth.uid()) - the self-service onboarding
+--     path used on static deployments.
+--
+-- The creator check uses a SECURITY DEFINER helper because the organizations
+-- SELECT policy hides the new org from its creator until the membership row
+-- exists.
+
+CREATE OR REPLACE FUNCTION public.is_org_creator(_org UUID, _user UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.organizations WHERE id = _org AND created_by = _user
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_org_creator(UUID, UUID) FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_org_creator(UUID, UUID) TO authenticated;
+
+DROP POLICY IF EXISTS "members_insert_admins_or_self" ON public.organization_members;
+DROP POLICY IF EXISTS "members_insert_admins_or_creator" ON public.organization_members;
+
+CREATE POLICY "members_insert_admins_or_creator" ON public.organization_members
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.has_org_role(organization_id, auth.uid(), ARRAY['owner','admin']::public.org_role[])
+    OR (user_id = auth.uid() AND public.is_org_creator(organization_id, auth.uid()))
+  );
+
+
+-- =============================================================================
+-- Migration: 20261120000001_account_balances_view.sql
+-- =============================================================================
+
+-- Server-side ledger aggregation.
+--
+-- The Accounting page previously downloaded every journal line of the
+-- workspace to compute the trial balance and P&L in the browser. This view
+-- aggregates POSTED lines per account in SQL, so the page only fetches one row
+-- per account plus a bounded page of recent journal entries.
+--
+-- security_invoker = true makes the view run with the caller's privileges, so
+-- the existing RLS policies on journal_lines / journal_entries (is_org_member)
+-- still decide which rows are visible. No tenant can read another's balances.
+
+CREATE OR REPLACE VIEW public.account_balances
+WITH (security_invoker = true) AS
+SELECT
+  jl.organization_id,
+  jl.account_id,
+  COALESCE(SUM(jl.debit), 0)::numeric(18,2)  AS debit,
+  COALESCE(SUM(jl.credit), 0)::numeric(18,2) AS credit
+FROM public.journal_lines jl
+JOIN public.journal_entries je ON je.id = jl.entry_id
+WHERE je.is_posted = true
+GROUP BY jl.organization_id, jl.account_id;
+
+GRANT SELECT ON public.account_balances TO authenticated;
+REVOKE ALL ON public.account_balances FROM anon;
+
+
+-- =============================================================================
+-- Migration: 20261120000002_profiles_visible_to_teammates.sql
+-- =============================================================================
+
+-- Team pages could not show teammates' names.
+--
+-- 1. organization_members has no foreign key to profiles (both reference
+--    auth.users), so the PostgREST embed `profile:profiles(full_name)` failed
+--    with PGRST200. The app now fetches profiles separately and joins them.
+-- 2. profiles were readable only by their owner ("profiles_select_self"), so
+--    even a separate query returned nobody else's name.
+--
+-- Fix: a member may read the profile (name, avatar) of anyone who shares at
+-- least one workspace with them. Users still update/insert only their own row.
+
+CREATE OR REPLACE FUNCTION public.shares_org_with(_other UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_members me
+    JOIN public.organization_members them
+      ON them.organization_id = me.organization_id
+    WHERE me.user_id = auth.uid() AND them.user_id = _other
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.shares_org_with(UUID) FROM anon;
+GRANT EXECUTE ON FUNCTION public.shares_org_with(UUID) TO authenticated;
+
+DROP POLICY IF EXISTS "profiles_select_teammates" ON public.profiles;
+CREATE POLICY "profiles_select_teammates" ON public.profiles
+  FOR SELECT TO authenticated
+  USING (public.shares_org_with(id));

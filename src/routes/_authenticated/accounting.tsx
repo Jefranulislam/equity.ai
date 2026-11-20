@@ -39,44 +39,80 @@ const TYPE_COLORS: Record<AccountType, string> = {
   expense: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
 };
 
+/** Most recent journal entries shown in the Journal tab. */
+const JOURNAL_PAGE = 200;
+
+/** Sum debit/credit per account over POSTED entries only. */
+function aggregateBalances(lines: Pick<JournalLine, "entry_id" | "account_id" | "debit" | "credit">[], postedEntryIds: Set<string>) {
+  const map = new Map<string, { debit: number; credit: number }>();
+  for (const ln of lines) {
+    if (!postedEntryIds.has(ln.entry_id)) continue;
+    const b = map.get(ln.account_id) ?? { debit: 0, credit: 0 };
+    b.debit += Number(ln.debit) || 0;
+    b.credit += Number(ln.credit) || 0;
+    map.set(ln.account_id, b);
+  }
+  return map;
+}
+
 function AccountingPage() {
   const { currentOrg } = useOrg();
   const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [lines, setLines] = useState<JournalLine[]>([]);
+  const [balances, setBalances] = useState<Map<string, { debit: number; credit: number }>>(new Map());
+  const [postedCount, setPostedCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const [{ data: a }, { data: e }, { data: l }] = await Promise.all([
-      supabase.from("accounts").select("*").eq("organization_id", currentOrg.id).order("code"),
-      supabase.from("journal_entries").select("*").eq("organization_id", currentOrg.id).order("entry_date", { ascending: false }),
-      supabase.from("journal_lines").select("*").eq("organization_id", currentOrg.id),
+    const orgId = currentOrg.id;
+    // Bounded queries: the journal tab shows the latest JOURNAL_PAGE entries,
+    // while balances come pre-aggregated from the `account_balances` view.
+    const [{ data: a }, { data: e }, posted, bal] = await Promise.all([
+      supabase.from("accounts").select("*").eq("organization_id", orgId).order("code"),
+      supabase.from("journal_entries").select("*").eq("organization_id", orgId)
+        .order("entry_date", { ascending: false }).limit(JOURNAL_PAGE),
+      supabase.from("journal_entries").select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId).eq("is_posted", true),
+      supabase.from("account_balances").select("account_id,debit,credit").eq("organization_id", orgId),
     ]);
+    const entryList = (e ?? []) as JournalEntry[];
+    const { data: l } = entryList.length
+      ? await supabase.from("journal_lines").select("*").eq("organization_id", orgId)
+          .in("entry_id", entryList.map((x) => x.id))
+      : { data: [] };
+
+    let balanceMap: Map<string, { debit: number; credit: number }>;
+    if (!bal.error) {
+      balanceMap = new Map(
+        (bal.data ?? []).map((b) => [
+          b.account_id as string,
+          { debit: Number(b.debit) || 0, credit: Number(b.credit) || 0 },
+        ]),
+      );
+    } else {
+      // Fallback for databases without migration 20261120000001: aggregate in the browser.
+      const [{ data: allLines }, { data: postedIds }] = await Promise.all([
+        supabase.from("journal_lines").select("entry_id,account_id,debit,credit").eq("organization_id", orgId),
+        supabase.from("journal_entries").select("id").eq("organization_id", orgId).eq("is_posted", true),
+      ]);
+      balanceMap = aggregateBalances(
+        (allLines ?? []) as JournalLine[],
+        new Set((postedIds ?? []).map((x) => x.id as string)),
+      );
+    }
+
     setAccounts((a ?? []) as Account[]);
-    setEntries((e ?? []) as JournalEntry[]);
+    setEntries(entryList);
     setLines((l ?? []) as JournalLine[]);
+    setBalances(balanceMap);
+    setPostedCount(posted.count ?? entryList.filter((x) => x.is_posted).length);
     setLoading(false);
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [currentOrg?.id]);
-
-  
-
-  // Trial balance + P&L from POSTED lines only
-  const postedEntryIds = useMemo(() => new Set(entries.filter(e => e.is_posted).map(e => e.id)), [entries]);
-  const balances = useMemo(() => {
-    const map = new Map<string, { debit: number; credit: number }>();
-    for (const ln of lines) {
-      if (!postedEntryIds.has(ln.entry_id)) continue;
-      const b = map.get(ln.account_id) ?? { debit: 0, credit: 0 };
-      b.debit += Number(ln.debit) || 0;
-      b.credit += Number(ln.credit) || 0;
-      map.set(ln.account_id, b);
-    }
-    return map;
-  }, [lines, postedEntryIds]);
 
   const pnl = useMemo(() => {
     let income = 0, expense = 0;
@@ -89,10 +125,10 @@ function AccountingPage() {
     return { income, expense, net: income - expense };
   }, [accounts, balances]);
 
-  if (!currentOrg) return <div className="p-8 text-muted-foreground">Select a workspace first.</div>;
+  if (!currentOrg) return <div className="p-4 sm:p-6 lg:p-8 text-muted-foreground">Select a workspace first.</div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Accounting</h1>
@@ -102,7 +138,7 @@ function AccountingPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Accounts</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{accounts.length}</CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Posted Entries</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{postedEntryIds.size}</CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Posted Entries</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{postedCount}</CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Revenue</CardTitle></CardHeader><CardContent className="text-2xl font-semibold text-emerald-600">{money(pnl.income, currentOrg.currency)}</CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Net Income</CardTitle></CardHeader><CardContent className={`text-2xl font-semibold ${pnl.net >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{money(pnl.net, currentOrg.currency)}</CardContent></Card>
       </div>
@@ -154,7 +190,7 @@ function AccountingPage() {
                         <TableCell className="text-right">
                           {!e.is_posted && (
                             <Button size="sm" variant="outline" onClick={async () => {
-                              const { error } = await supabase.from("journal_entries").update({ is_posted: true }).eq("id", e.id);
+                              const { error } = await supabase.from("journal_entries").update({ is_posted: true }).eq("id", e.id).eq("organization_id", currentOrg!.id);
                               if (error) toast.error(error.message); else { toast.success("Posted"); load(); }
                             }}>
                               <FileCheck2 className="h-3.5 w-3.5 mr-1" />Post
@@ -347,7 +383,7 @@ function NewEntryDialog({ accounts, orgId, userId, onCreated }: { accounts: Acco
     if (lerr) return toast.error(lerr.message);
 
     if (post) {
-      const { error: perr } = await supabase.from("journal_entries").update({ is_posted: true }).eq("id", entry.id);
+      const { error: perr } = await supabase.from("journal_entries").update({ is_posted: true }).eq("id", entry.id).eq("organization_id", orgId);
       if (perr) return toast.error(perr.message);
     }
     toast.success(post ? "Posted" : "Draft saved");

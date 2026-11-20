@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useOrg } from "@/contexts/org-context";
+import { useOrgRole } from "@/lib/use-org-role";
+import { joinById } from "@/lib/relations";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtDate } from "@/lib/format";
 
@@ -39,7 +41,7 @@ function Settings() {
   const [tab, setTab] = useState<Tab>("workspace");
 
   return (
-    <div className="p-8 max-w-5xl mx-auto w-full">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full">
       <div className="mb-8 animate-reveal">
         <h1 className="text-2xl font-bold tracking-tight mb-1">Settings</h1>
         <p className="text-muted-foreground">Workspace, profile, and team access</p>
@@ -80,6 +82,7 @@ function Settings() {
 /* ───── Workspace ───── */
 function WorkspacePanel() {
   const { currentOrg, refresh } = useOrg();
+  const { isAdmin } = useOrgRole();
   const [form, setForm] = useState({ name: "", country: "", currency: "", tax_regime: "" });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -104,7 +107,7 @@ function WorkspacePanel() {
   }, [currentOrg]);
 
   const save = async () => {
-    if (!currentOrg) return;
+    if (!currentOrg || !isAdmin) return;
     setSaving(true);
     setMsg(null);
     const { error } = await supabase.from("organizations").update(form).eq("id", currentOrg.id);
@@ -120,8 +123,11 @@ function WorkspacePanel() {
   if (!currentOrg) return <Empty>No workspace selected.</Empty>;
 
   return (
-    <Card title="Workspace details" subtitle="Visible across invoices, reports and emails">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <Card
+      title="Workspace details"
+      subtitle={isAdmin ? "Visible across invoices, reports and emails" : "Read-only — only owners and admins can edit workspace details"}
+    >
+      <fieldset disabled={!isAdmin} className="grid grid-cols-1 md:grid-cols-2 gap-5 disabled:opacity-70">
         <Field label="Name">
           <input
             value={form.name}
@@ -153,11 +159,11 @@ function WorkspacePanel() {
             className={inputCls}
           />
         </Field>
-      </div>
+      </fieldset>
       <div className="flex items-center gap-3 mt-6">
         <button
           onClick={save}
-          disabled={saving}
+          disabled={saving || !isAdmin}
           className="px-4 py-2 bg-accent text-accent-foreground rounded-md font-medium text-sm flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
@@ -242,12 +248,26 @@ function TeamPanel() {
   const load = async () => {
     if (!currentOrg) return;
     setLoading(true);
+    // organization_members has no FK to profiles, so join in the client.
     const { data } = await supabase
       .from("organization_members")
-      .select("id,user_id,role,created_at,profile:profiles(full_name,avatar_url)")
+      .select("id,user_id,role,created_at")
       .eq("organization_id", currentOrg.id)
       .order("created_at", { ascending: true });
-    const list = (data ?? []) as unknown as Member[];
+    const rows = (data ?? []) as Omit<Member, "profile">[];
+    const { data: profiles } = rows.length
+      ? await supabase
+          .from("profiles")
+          .select("id,full_name,avatar_url")
+          .in("id", rows.map((m) => m.user_id))
+      : { data: [] };
+    const list: Member[] = joinById(
+      rows,
+      "user_id",
+      (profiles ?? []) as { id: string; full_name: string | null; avatar_url: string | null }[],
+      "profile",
+      (p) => ({ full_name: p.full_name, avatar_url: p.avatar_url }),
+    );
     setMembers(list);
     setMyRole(list.find((m) => m.user_id === user?.id)?.role ?? null);
     setLoading(false);
@@ -260,13 +280,13 @@ function TeamPanel() {
   const canManage = myRole === "owner" || myRole === "admin";
 
   const changeRole = async (id: string, role: Role) => {
-    await supabase.from("organization_members").update({ role }).eq("id", id);
+    await supabase.from("organization_members").update({ role }).eq("id", id).eq("organization_id", currentOrg!.id);
     load();
   };
 
   const remove = async (id: string) => {
     if (!confirm("Remove this member from the workspace?")) return;
-    await supabase.from("organization_members").delete().eq("id", id);
+    await supabase.from("organization_members").delete().eq("id", id).eq("organization_id", currentOrg!.id);
     load();
   };
 

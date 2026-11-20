@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { money, fmtDate } from "@/lib/format";
+import { statusTone } from "@/lib/status-styles";
 
 export const Route = createFileRoute("/_authenticated/bills")({
   component: BillsPage,
@@ -27,14 +28,6 @@ interface Bill {
 
 interface LineDraft { description: string; quantity: string; unit_price: string; tax_rate: string; }
 const emptyLine = (): LineDraft => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
-
-const STATUS_COLOR: Record<Bill["status"], string> = {
-  draft: "bg-muted text-muted-foreground",
-  open: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
-  partial: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  paid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  void: "bg-destructive/10 text-destructive",
-};
 
 function BillsPage() {
   const { currentOrg } = useOrg();
@@ -106,7 +99,7 @@ function BillsPage() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this bill?")) return;
-    const { error } = await supabase.from("bills").delete().eq("id", id);
+    const { error } = await supabase.from("bills").delete().eq("id", id).eq("organization_id", currentOrg!.id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
     load();
@@ -117,7 +110,7 @@ function BillsPage() {
     .reduce((s, r) => s + (Number(r.total) - Number(r.amount_paid)), 0);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full animate-reveal">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full animate-reveal">
       <div className="flex items-end justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-1">Bills</h1>
@@ -231,7 +224,7 @@ function BillsPage() {
                 <td className="px-4 py-3 text-right font-medium">{money(r.total, r.currency)}</td>
                 <td className="px-4 py-3 text-right text-muted-foreground">{money(r.amount_paid, r.currency)}</td>
                 <td className="px-4 py-3 text-center">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLOR[r.status]}`}>{r.status}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusTone(r.status)}`}>{r.status}</span>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button onClick={() => remove(r.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">

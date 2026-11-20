@@ -89,7 +89,7 @@ function ExpensesPage() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this expense?")) return;
-    const { error } = await supabase.from("expenses").delete().eq("id", id);
+    const { error } = await supabase.from("expenses").delete().eq("id", id).eq("organization_id", currentOrg!.id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
     load();
@@ -104,7 +104,7 @@ function ExpensesPage() {
   }, [rows]);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full animate-reveal">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full animate-reveal">
       <div className="flex items-end justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-1">Expenses</h1>

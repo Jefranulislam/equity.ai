@@ -1,5 +1,6 @@
 # Equity.AI — production-style container image (workerd via vite preview).
-FROM oven/bun:1.2 AS build
+# Pinned base image (same Bun version as package.json "packageManager").
+FROM oven/bun:1.3.14 AS build
 WORKDIR /app
 
 # Restore dependencies first (layer cache) — lockfile ensures reproducibility
@@ -15,12 +16,14 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
 COPY . .
 RUN bun run build:worker
 
-FROM oven/bun:1.2
+FROM oven/bun:1.3.14
 WORKDIR /app
 COPY --from=build /app /app
 
-# Server-side secrets are provided at runtime (docker compose environment);
-# workerd reads them from dist/server/.dev.vars, so we regenerate it on start,
-# then launch the compiled production worker locally.
+# Server-side secrets are provided at RUNTIME only (docker compose environment),
+# never baked into an image layer. workerd reads them from dist/server/.dev.vars,
+# so the file is regenerated on container start with mode 600 (umask 077).
+# dist/server/ is NOT a static-asset directory: wrangler only serves files from
+# dist/client/, so .dev.vars can never be fetched over HTTP.
 EXPOSE 8787
 CMD ["sh", "-c", "umask 077 && printf 'SUPABASE_URL=%s\\nSUPABASE_PUBLISHABLE_KEY=%s\\nSUPABASE_SERVICE_ROLE_KEY=%s\\nAI_API_KEY=%s\\nAI_BASE_URL=%s\\nAI_MODEL=%s\\n' \"$SUPABASE_URL\" \"$SUPABASE_PUBLISHABLE_KEY\" \"$SUPABASE_SERVICE_ROLE_KEY\" \"$AI_API_KEY\" \"$AI_BASE_URL\" \"$AI_MODEL\" > dist/server/.dev.vars && exec ./node_modules/.bin/wrangler dev --config dist/server/wrangler.json --port 8787 --ip 0.0.0.0"]

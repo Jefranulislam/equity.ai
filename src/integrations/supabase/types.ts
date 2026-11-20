@@ -1508,9 +1508,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      account_balances: {
+        Row: {
+          organization_id: string | null
+          account_id: string | null
+          debit: number | null
+          credit: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      create_workspace: {
+        Args: {
+          p_name: string
+          p_country: string
+          p_currency: string
+          p_tax_regime?: string | null
+        }
+        Returns: {
+          id: string
+          name: string
+          currency: string
+          country: string
+        }[]
+      }
       get_account_id: { Args: { _code: string; _org: string }; Returns: string }
       has_org_role: {
         Args: {
@@ -1519,6 +1541,14 @@ export type Database = {
           _user: string
         }
         Returns: boolean
+      }
+      invite_member: {
+        Args: {
+          p_email: string
+          p_role: Database["public"]["Enums"]["org_role"]
+          p_org: string
+        }
+        Returns: undefined
       }
       is_org_member: { Args: { _org: string; _user: string }; Returns: boolean }
       tg_post_invoice_je_manual: { Args: { _id: string }; Returns: undefined }

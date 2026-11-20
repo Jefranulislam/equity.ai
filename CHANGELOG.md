@@ -4,6 +4,41 @@ All notable changes to Equity.AI. Format: [Keep a Changelog](https://keepachange
 
 Dates are approximate build dates reconstructed from the migration log; adjust on release.
 
+## [1.0.6] — 2026-11-20 · Submission V1.0.6 (review fixes)
+
+Package: `Equity.AI.Submission.V1.0.6.zip`. From this release on, the version in `package.json` matches the submission package name. The 1.1.x headings below were internal build labels used before submissions were versioned.
+
+### Security
+- **Closed a workspace self-join hole:** the `organization_members` INSERT policy allowed any signed-in user to add themselves to any workspace. Self-insert is now limited to workspaces the user created (onboarding). Migration `20261120000000_harden_member_self_insert.sql`.
+- Client deletes, updates and by-id lookups now also filter by `organization_id` (customers, vendors, bills, expenses, products, payments, invoices, quotes, purchase orders, journal entries, members), on top of RLS.
+- Invoice detail loads invoice, lines and payment links scoped to the current workspace.
+- `POST /api/demo` is fail-closed in every environment: 404 unless `DEMO_ENABLED=true` and a `DEMO_SETUP_TOKEN` of at least 16 characters are set; the token is compared in constant time. The demo password has no fallback value.
+- Settings → Workspace is read-only for roles other than owner/admin (matching the `org_update_admins` RLS policy). New `useOrgRole()` hook for UI gating.
+- The role matrix enforced by RLS is now documented in `HowToSetup.md` under "Security model".
+
+### Fixed
+- **Quotes failed to load:** `quotes`, `credit_notes`, `purchase_orders` and `bill_payments` had no foreign keys, so PostgREST embeds (`customer:customers(...)`) returned PGRST200. Lists now join lookups in the client (`src/lib/relations.ts`), and migration `20261105000000_add_missing_sales_document_fks.sql` adds the constraints.
+- **Team members list:** `organization_members` has no FK to `profiles`, and profiles were readable only by their owner, so Members and Settings → Team failed to show teammates. Profiles are now joined in the client and readable by users who share a workspace (migration `20261120000002_profiles_visible_to_teammates.sql`).
+- **Create Invoice button** in the top bar appears only on the Invoices screens.
+- **Responsive top bar search:** full field on tablet/desktop, icon on mobile, both open the command palette.
+- **Deep links on Vercel** (`/login`, `/dashboard`, …) returned 404; `vercel.json` adds the SPA rewrite.
+- Onboarding read the `create_workspace` RPC result as an object although it returns a table (array).
+- `types.ts` now declares the `create_workspace` and `invite_member` RPCs and the `account_balances` view (typecheck is clean).
+- Demo email in docs and `.env.example` corrected to `demo@equity.ai`.
+
+### Changed
+- Sidebar becomes a slide-out drawer below desktop width; closes on navigation, backdrop tap or Esc. Page padding scales with screen size; wide tables scroll inside their card.
+- **Accounting:** trial balance and P&L come from the new `account_balances` view (`security_invoker`, RLS still applies; migration `20261120000001_account_balances_view.sql`). The journal list loads the latest 200 entries instead of the whole ledger.
+- **Shared helpers instead of per-route copies:** `lib/status-styles.ts` (status badge colours), `lib/relations.ts` (lookup join), `lib/kpis.ts` (dashboard KPI aggregation as a pure function), `todayISO`/`firstOfMonthISO` in `lib/format.ts`.
+- `database/schema.sql` is generated from the migrations by `bun run db:schema`; `bun run db:schema:check` fails when it is stale, and `pack-zip.ps1` runs it before packaging.
+
+### Build & tooling
+- Bun is the only supported package manager: `packageManager: bun@1.3.14`, `engines`, `bun install --frozen-lockfile` everywhere (Docker, Vercel, docs). Docker base image pinned to `oven/bun:1.3.14`.
+- Unit tests added (`tests/lib.test.ts`, 5 tests): run with `bun test`.
+- **Dependency audit:** `bun audit` (Bun 1.3.14, 2026-11-20) reports **No vulnerabilities found**. Re-run with `bun run audit`.
+- `HowToSetup.md`: runtime version table, primary deployment target, full environment-variable table (incl. `DEMO_SETUP_TOKEN`), one database path per situation, upgrade steps, and the demo setup marked optional after DB and server start.
+- The submission archive no longer contains `.claude/settings.local.json` or the `screenshots/` scratch folder; curated screenshots ship in `docs/screenshots/`.
+
 ## [1.1.1] — 2026-10 · Static-deployment compatibility
 
 ### Fixed

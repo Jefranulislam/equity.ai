@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, ArrowRightCircle } from "lucide-react";
 import { toast } from "sonner";
 import { money, fmtDate } from "@/lib/format";
+import { joinById } from "@/lib/relations";
 
 export const Route = createFileRoute("/_authenticated/purchase-orders")({
   head: () => ({ meta: [{ title: "Purchase Orders — Equity.AI" }] }),
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/purchase-orders")({
 });
 
 interface PO { id: string; po_number: string; issue_date: string; expected_date: string | null; status: string; total: number; currency: string; converted_bill_id: string | null; vendor: { name: string } | null; }
+interface PORow { id: string; po_number: string; issue_date: string; expected_date: string | null; status: string; total: number; currency: string; converted_bill_id: string | null; vendor_id: string | null; }
 interface Line { description: string; quantity: string; unit_price: string; tax_rate: string; }
 const newLine = (): Line => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
 
@@ -37,12 +39,15 @@ function Page() {
 
   const load = async () => {
     if (!currentOrg) return;
+    // Client-side join: works on databases created before the FK migration (see lib/relations.ts).
     const [p, v] = await Promise.all([
-      supabase.from("purchase_orders").select("id,po_number,issue_date,expected_date,status,total,currency,converted_bill_id,vendor:vendors(name)").eq("organization_id", currentOrg.id).order("created_at", { ascending: false }),
+      supabase.from("purchase_orders").select("id,po_number,issue_date,expected_date,status,total,currency,converted_bill_id,vendor_id").eq("organization_id", currentOrg.id).order("created_at", { ascending: false }),
       supabase.from("vendors").select("id,name").eq("organization_id", currentOrg.id).order("name"),
     ]);
-    setRows((p.data ?? []) as unknown as PO[]);
-    setVendors((v.data ?? []) as { id: string; name: string }[]);
+    if (p.error) { toast.error(`Failed to load purchase orders: ${p.error.message}`); setRows([]); return; }
+    const vendorList = (v.data ?? []) as { id: string; name: string }[];
+    setRows(joinById((p.data ?? []) as unknown as PORow[], "vendor_id", vendorList, "vendor", (x) => ({ name: x.name })));
+    setVendors(vendorList);
   };
   useEffect(() => { load(); }, [currentOrg?.id]);
 
@@ -71,7 +76,7 @@ function Page() {
 
   const convertToBill = async (poid: string) => {
     if (!currentOrg || !user) return;
-    const { data: po } = await supabase.from("purchase_orders").select("*").eq("id", poid).single();
+    const { data: po } = await supabase.from("purchase_orders").select("*").eq("id", poid).eq("organization_id", currentOrg!.id).single();
     const { data: pl } = await supabase.from("po_lines").select("*").eq("po_id", poid).order("position");
     if (!po || !pl) return toast.error("PO not found");
     const { data: bill, error } = await supabase.from("bills").insert({
@@ -83,12 +88,12 @@ function Page() {
       organization_id: currentOrg.id, bill_id: bill.id, position: i,
       description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate,
     })));
-    await supabase.from("purchase_orders").update({ status: "received", converted_bill_id: bill.id }).eq("id", poid);
+    await supabase.from("purchase_orders").update({ status: "received", converted_bill_id: bill.id }).eq("id", poid).eq("organization_id", currentOrg!.id);
     toast.success(`Converted to ${bill.bill_number}`); load();
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold">Purchase Orders</h1><p className="text-muted-foreground text-sm">Orders sent to vendors</p></div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -127,8 +132,8 @@ function Page() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="border rounded-lg">
-        <Table>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table className="min-w-[680px]">
           <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Vendor</TableHead><TableHead>Issue</TableHead><TableHead>Expected</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>
             {rows.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders yet</TableCell></TableRow> :

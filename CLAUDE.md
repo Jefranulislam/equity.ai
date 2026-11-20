@@ -45,11 +45,23 @@ database/                 schema.sql (from-scratch install) + seed.sql (demo dat
 
 1. **Never import `client.server.ts` from browser code.** Service-role operations only for: team email lookup, workspace provisioning, AI data tools. Everything else must go through the user-scoped client so RLS is the enforcement point.
 2. **New server functions:** always `.middleware([requireSupabaseAuth])`, validate input with zod, and re-check org membership (`organization_members` lookup for the caller) before acting on another user's records when admin client is required.
-3. **Schema changes:** add a migration in `supabase/migrations/`, regenerate `types.ts`, then update `database/schema.sql` (concatenate new migration) and keep `database/seed.sql` valid against the new schema.
+3. **Schema changes:** add a migration in `supabase/migrations/`, regenerate `types.ts`, then run `bun run db:schema` (rebuilds `database/schema.sql` from the migrations; `bun run db:schema:check` fails if it is stale) and keep `database/seed.sql` valid against the new schema.
 4. **Every business table** has `organization_id`, RLS policies using `is_org_member()`/`has_org_role()`, `updated_at` + trigger, and (where numbered) a numbering trigger. Follow the pattern of existing tables.
 5. **Accounting integrity:** journal entries must stay balanced (enforced by trigger `tg_check_journal_balanced`); never bypass it.
 6. Client data fetching: TanStack Query + the shared `supabase` browser client; naming follows existing route files (`x.{index,new,$id}.tsx`).
 
 ## Tests
 
-No unit test framework is configured (checked: no test script in package.json). Manual verification protocol lives in `HowToSetup.md` → "Verification checklist". If you add tests, they should run via `bun test` with no extra config.
+- `bun test` runs the unit tests in `tests/` (pure helpers in `src/lib/`: KPI aggregation, lookup joins, status styles). No extra config needed.
+- Keep business calculations as pure functions in `src/lib/` so they can be tested without Supabase.
+- Manual verification protocol lives in `HowToSetup.md` under "Verification checklist".
+- `bun run audit` must report no vulnerabilities before a release; record the result in `CHANGELOG.md`.
+
+## Shared helpers (use these instead of re-declaring per route)
+
+- `src/lib/status-styles.ts`: `statusTone(status)` badge colours for every document type
+- `src/lib/relations.ts`: `joinById(...)` client-side lookup join
+- `src/lib/format.ts`: `money`, `fmtDate`, `todayISO`, `firstOfMonthISO`
+- `src/lib/kpis.ts`: dashboard KPI aggregation
+- `src/lib/use-org-role.ts`: current user's role for UI gating (RLS remains the enforcement point)
+- Always add `.eq("organization_id", currentOrg.id)` to client queries, including updates and deletes by id.

@@ -81,7 +81,7 @@ function NewInvoicePage() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto w-full animate-reveal">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full animate-reveal">
       <Link to="/invoices" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="size-3.5" /> Back to invoices
       </Link>

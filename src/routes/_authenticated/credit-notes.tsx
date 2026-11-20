@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { money, fmtDate } from "@/lib/format";
+import { joinById } from "@/lib/relations";
 
 export const Route = createFileRoute("/_authenticated/credit-notes")({
   head: () => ({ meta: [{ title: "Credit Notes — Equity.AI" }] }),
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/credit-notes")({
 });
 
 interface CN { id: string; credit_number: string; issue_date: string; status: string; total: number; currency: string; reason: string | null; customer: { billing_name: string } | null; invoice: { invoice_number: string } | null; }
+interface CNRow { id: string; credit_number: string; issue_date: string; status: string; total: number; currency: string; reason: string | null; customer_id: string | null; invoice_id: string | null; }
 interface Line { description: string; quantity: string; unit_price: string; tax_rate: string; }
 const newLine = (): Line => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
 
@@ -38,14 +40,19 @@ function Page() {
 
   const load = async () => {
     if (!currentOrg) return;
+    // Client-side join: works on databases created before the FK migration (see lib/relations.ts).
     const [c, cu, inv] = await Promise.all([
-      supabase.from("credit_notes").select("id,credit_number,issue_date,status,total,currency,reason,customer:customers(billing_name),invoice:invoices(invoice_number)").eq("organization_id", currentOrg.id).order("created_at", { ascending: false }),
+      supabase.from("credit_notes").select("id,credit_number,issue_date,status,total,currency,reason,customer_id,invoice_id").eq("organization_id", currentOrg.id).order("created_at", { ascending: false }),
       supabase.from("customers").select("id,billing_name").eq("organization_id", currentOrg.id).order("billing_name"),
       supabase.from("invoices").select("id,invoice_number").eq("organization_id", currentOrg.id).order("created_at", { ascending: false }).limit(100),
     ]);
-    setRows((c.data ?? []) as unknown as CN[]);
-    setCustomers((cu.data ?? []) as { id: string; billing_name: string }[]);
-    setInvoices((inv.data ?? []) as { id: string; invoice_number: string }[]);
+    if (c.error) { toast.error(`Failed to load credit notes: ${c.error.message}`); setRows([]); return; }
+    const customerList = (cu.data ?? []) as { id: string; billing_name: string }[];
+    const invoiceList = (inv.data ?? []) as { id: string; invoice_number: string }[];
+    const withCustomer = joinById((c.data ?? []) as unknown as CNRow[], "customer_id", customerList, "customer", (x) => ({ billing_name: x.billing_name }));
+    setRows(joinById(withCustomer, "invoice_id", invoiceList, "invoice", (x) => ({ invoice_number: x.invoice_number })));
+    setCustomers(customerList);
+    setInvoices(invoiceList);
   };
   useEffect(() => { load(); }, [currentOrg?.id]);
 
@@ -73,7 +80,7 @@ function Page() {
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold">Credit Notes</h1><p className="text-muted-foreground text-sm">Refund or credit issued against a customer invoice</p></div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -114,8 +121,8 @@ function Page() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="border rounded-lg">
-        <Table>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table className="min-w-[680px]">
           <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Customer</TableHead><TableHead>Invoice</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
           <TableBody>
             {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No credit notes yet</TableCell></TableRow> :
